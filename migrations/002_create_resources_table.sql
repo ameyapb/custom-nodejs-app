@@ -9,4 +9,4 @@ CREATE TABLE IF NOT EXISTS resources (
   updated_at      TIMESTAMPTZ      NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_resources_user_id ON resources(user_id);
+CREATE INDEX IF NOT EXISTS idx_resources_user_id ON resources(user_id);

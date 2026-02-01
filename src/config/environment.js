@@ -10,5 +10,6 @@ export const config = {
   logLevel: (process.env.LOG_LEVEL || "info").toLowerCase(),
   logFormat: process.env.LOG_FORMAT || "pretty",
   dbUrl: process.env.DB_URL,
+  dbSchema: process.env.DB_SCHEMA || "public",
   nodeEnv: process.env.NODE_ENV || "development",
 };
