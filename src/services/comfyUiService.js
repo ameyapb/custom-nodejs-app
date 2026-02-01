@@ -78,11 +78,13 @@ export async function checkComfyUI() {
  * ComfyUI serves files at /file={type}/{subfolder}/{filename}
  */
 export async function downloadOutput({ filename, subfolder, type }) {
-  const filePath = subfolder
-    ? `file=${type}/${subfolder}/${filename}`
-    : `file=${type}/${filename}`;
+  const params = new URLSearchParams({
+    type: type || "output",
+    subfolder: subfolder || "",
+    filename,
+  });
 
-  const url = `${baseUrl()}/${filePath}`;
+  const url = `${baseUrl()}/view?${params.toString()}`;
 
   try {
     const res = await axios.get(url, {
@@ -99,7 +101,16 @@ export async function downloadOutput({ filename, subfolder, type }) {
   } catch (err) {
     logger.error(
       `Failed to download output file: ${url}. [module=services/comfyUi, event=download_failed]`,
-      err
+      {
+        message: err.message,
+        // stack: err.stack,
+        // Axios-specific info, if it exists
+        status: err.response?.status ?? err.status,
+        statusText: err.response?.statusText ?? err.statusText,
+        url: err.config?.url ?? err.url,
+        method: err.config?.method ?? err.method,
+        responseData: err.response?.data ?? err.data,
+      }
     );
     return {
       errorOccurred: true,

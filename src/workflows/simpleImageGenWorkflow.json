@@ -74,8 +74,9 @@
         }
     },
     "18": {
-        "class_type": "PreviewImage",
+        "class_type": "SaveImage",
         "inputs": {
+            "filename_prefix": "ComfyUI",
             "images": [
                 "9",
                 0

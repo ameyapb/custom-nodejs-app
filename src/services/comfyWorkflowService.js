@@ -36,7 +36,7 @@ function buildPrompt({ positivePrompt, negativePrompt }) {
 // ---------------------------------------------------------------------------
 async function submitWorkflow({ positivePrompt, negativePrompt }) {
   const prompt = buildPrompt({ positivePrompt, negativePrompt });
-  const result = await callComfyApi("queue/prompt", "post", { prompt });
+  const result = await callComfyApi("prompt", "post", { prompt });
 
   if (result.errorOccurred) {
     throw new Error(
@@ -117,17 +117,29 @@ function extractOutputMeta(historyEntry) {
   const outputs = historyEntry?.outputs || {};
 
   for (const nodeId of Object.keys(outputs)) {
-    const nodeOutputs = outputs[nodeId];
-    if (!Array.isArray(nodeOutputs)) continue;
+    const nodeOutput = outputs[nodeId];
 
-    for (const group of nodeOutputs) {
-      if (group?.images?.length > 0) {
-        const img = group.images[0];
-        return {
-          filename: img.filename,
-          subfolder: img.subfolder || "",
-          type: img.type || "output",
-        };
+    // Shape A: { images: [...] } — what ComfyUI actually returns
+    if (nodeOutput?.images?.length > 0) {
+      const img = nodeOutput.images[0];
+      return {
+        filename: img.filename,
+        subfolder: img.subfolder || "",
+        type: img.type || "output",
+      };
+    }
+
+    // Shape B: [{ images: [...] }, ...] — array of output groups (fallback)
+    if (Array.isArray(nodeOutput)) {
+      for (const group of nodeOutput) {
+        if (group?.images?.length > 0) {
+          const img = group.images[0];
+          return {
+            filename: img.filename,
+            subfolder: img.subfolder || "",
+            type: img.type || "output",
+          };
+        }
       }
     }
   }
