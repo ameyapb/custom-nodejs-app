@@ -44,7 +44,6 @@ export async function callComfyApi(
     };
   }
 }
-
 /**
  * Convenience: generate images from a prompt using a common sdapi endpoint.
  * Adjust path/payload to match your ComfyUI deployment.
@@ -56,4 +55,18 @@ export async function generateFromPrompt(payload) {
 
 export async function getJobStatus(jobId) {
   return callComfyApi(`jobs/${jobId}`, "get");
+}
+
+export async function checkComfyUI() {
+  const start = Date.now();
+  const result = await callComfyApi("/", "get", {}, { timeout: 5000 });
+
+  if (result.errorOccurred) {
+    return {
+      status: "down",
+      error: result.status ? `HTTP ${result.status}` : result.errorMessage,
+    };
+  }
+
+  return { status: "ok", latencyMs: Date.now() - start };
 }

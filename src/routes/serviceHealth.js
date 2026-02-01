@@ -1,6 +1,7 @@
 import express from "express";
 import { runQuery } from "../db/queryRunner.js";
 import logger from "../utils/system/logger.js";
+import { checkComfyUI } from "../services/comfyUiService.js";
 
 const router = express.Router();
 
@@ -11,11 +12,11 @@ const router = express.Router();
  *     tags:
  *       - Health
  *     summary: Service health check
- *     description: Checks database connectivity and response latency
+ *     description: Checks database connectivity and ComfyUI reachability, reporting latency for each
  *     security: []
  *     responses:
  *       200:
- *         description: Database is operational
+ *         description: All services are operational
  *         content:
  *           application/json:
  *             schema:
@@ -33,8 +34,17 @@ const router = express.Router();
  *                     latencyMs:
  *                       type: integer
  *                       example: 5
+ *                 comfyUi:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "ok"
+ *                     latencyMs:
+ *                       type: integer
+ *                       example: 42
  *       503:
- *         description: Database is down
+ *         description: One or more services are down
  *         content:
  *           application/json:
  *             schema:
@@ -51,23 +61,48 @@ const router = express.Router();
  *                       example: "down"
  *                     error:
  *                       type: string
+ *                 comfyUi:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "down"
+ *                     error:
+ *                       type: string
  */
 router.get("/", async (req, res) => {
-  try {
-    const result = await runQuery("SELECT 1");
-    res.json({
-      status: "ok",
-      db: { status: "ok", latencyMs: result.latencyMs },
-    });
-  } catch (err) {
+  const [dbResult, comfyResult] = await Promise.allSettled([
+    runQuery("SELECT 1"),
+    checkComfyUI(),
+  ]);
+
+  const db =
+    dbResult.status === "fulfilled"
+      ? { status: "ok", latencyMs: dbResult.value.latencyMs }
+      : { status: "down", error: dbResult.reason?.message ?? "unknown error" };
+
+  // comfyResult always fulfills — checkComfyUI catches internally
+  const comfyUi = comfyResult.value;
+
+  if (db.status === "down") {
     logger.error(
       "Database health check failed. [module=routes/serviceHealth, event=db_check_failed]",
-      err
+      dbResult.reason
     );
-    res
-      .status(503)
-      .json({ status: "error", db: { status: "down", error: err.message } });
   }
+  if (comfyUi.status === "down") {
+    logger.error(
+      `ComfyUI health check failed: ${comfyUi.error} [module=routes/serviceHealth, event=comfy_check_failed]`
+    );
+  }
+
+  const allOk = db.status === "ok" && comfyUi.status === "ok";
+
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? "ok" : "error",
+    db,
+    comfyUi,
+  });
 });
 
 export default router;

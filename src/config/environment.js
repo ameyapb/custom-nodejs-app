@@ -3,7 +3,7 @@ import { mandatoryEnvVars } from "../utils/system/environmentVars.js";
 
 dotenv.config();
 
-mandatoryEnvVars(["DB_URL", "JWT_SECRET"]);
+mandatoryEnvVars(["DB_URL", "JWT_SECRET", "COMFYUI_URL"]);
 
 export const config = {
   port: process.env.PORT || 3000,
