@@ -56,3 +56,30 @@ export async function deleteResourceById(resourceId) {
   const queryResult = await runQuery(queryText, [resourceId]);
   return queryResult.rows[0] || null;
 }
+
+export async function updateResourceFile(
+  resourceId,
+  filename,
+  filePath,
+  fileSizeBytes,
+  mimeType
+) {
+  const queryText = `
+    UPDATE resources
+    SET filename = $2,
+        file_path = $3,
+        file_size_bytes = $4,
+        mime_type = $5,
+        updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, user_id, filename, file_path, file_size_bytes, mime_type, created_at, updated_at
+  `;
+  const queryResult = await runQuery(queryText, [
+    resourceId,
+    filename,
+    filePath,
+    fileSizeBytes,
+    mimeType,
+  ]);
+  return queryResult.rows[0] || null;
+}

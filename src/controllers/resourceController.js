@@ -2,6 +2,7 @@ import {
   createImageResource,
   retrieveImageResource,
   deleteImageResource,
+  updateImageResource,
 } from "../services/resourceService.js";
 import logger from "../utils/system/logger.js";
 
@@ -76,9 +77,48 @@ export async function handleReadResourceRequest(req, res) {
 }
 
 export async function handleUpdateResourceRequest(req, res) {
-  return res
-    .status(501)
-    .json({ message: "Resource update not yet implemented" });
+  try {
+    const { resourceId } = req.params;
+    const userId = req.authenticatedUserAccountId;
+    const file = req.file;
+
+    if (!file) {
+      return res
+        .status(400)
+        .json({ message: "No image file provided for update" });
+    }
+
+    const result = await updateImageResource(
+      resourceId,
+      userId,
+      file.buffer,
+      file.originalname,
+      file.mimetype
+    );
+
+    if (result.errorOccurred) {
+      logger.error(
+        `Failed to update resource ${resourceId} for user ${userId}. [module=controllers/resource, event=update_failed]`
+      );
+      return res
+        .status(result.errorStatusCode)
+        .json({ message: result.errorMessage });
+    }
+
+    logger.info(
+      `Resource updated. id=${result.resource.id} userId=${userId}. [module=controllers/resource, event=update_success]`
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Resource updated", resource: result.resource });
+  } catch (err) {
+    logger.error(
+      "Resource update failed unexpectedly. [module=controllers/resource, event=update_error]",
+      err
+    );
+    return res.status(500).json({ message: "An unexpected error occurred" });
+  }
 }
 
 export async function handleDeleteResourceRequest(req, res) {

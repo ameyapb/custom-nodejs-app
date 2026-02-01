@@ -8,14 +8,11 @@ export const registrationRateLimiter = rateLimit({
   message: "Too many registration attempts. Please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req, res) => {
-    // Log rate limit hits
-    if (res.statusCode === 429) {
-      logger.warn(
-        `Rate limit exceeded for registration. ip=${req.ip}. [module=middleware/rateLimit, event=rate_limit_hit]`
-      );
-    }
-    return false;
+  handler: (req, res, next, options) => {
+    logger.warn(
+      `Rate limit exceeded for registration. ip=${req.ip}. [module=middleware/rateLimit, event=rate_limit_hit]`
+    );
+    res.status(options.statusCode).json({ message: options.message });
   },
 });
 
@@ -26,13 +23,11 @@ export const loginRateLimiter = rateLimit({
   message: "Too many login attempts. Please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req, res) => {
-    if (res.statusCode === 429) {
-      logger.warn(
-        `Rate limit exceeded for login. ip=${req.ip}. [module=middleware/rateLimit, event=rate_limit_hit]`
-      );
-    }
-    return false;
+  handler: (req, res, next, options) => {
+    logger.warn(
+      `Rate limit exceeded for login. ip=${req.ip}. [module=middleware/rateLimit, event=rate_limit_hit]`
+    );
+    res.status(options.statusCode).json({ message: options.message });
   },
 });
 
@@ -42,4 +37,12 @@ export const apiRateLimiter = rateLimit({
   max: 100, // 100 requests per IP per minute
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn(
+      `API rate limit exceeded. ip=${req.ip} path=${req.path}. [module=middleware/rateLimit, event=rate_limit_hit]`
+    );
+    res
+      .status(429)
+      .json({ message: "Too many requests. Please try again later." });
+  },
 });

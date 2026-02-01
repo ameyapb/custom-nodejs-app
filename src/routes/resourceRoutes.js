@@ -124,6 +124,8 @@ protectedResourceRouter.put(
   "/:resourceId",
   authenticateRequestViaJsonWebToken,
   requireRolePermissionForAction(DEFINED_RESOURCE_ACTIONS.ACTION_UPDATE),
+  uploadImageMiddleware.single("image"),
+  handleMulterErrors,
   handleUpdateResourceRequest
 );
 

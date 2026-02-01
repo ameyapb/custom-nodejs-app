@@ -15,4 +15,6 @@ export const config = {
   dbPoolMin: parseInt(process.env.DB_POOL_MIN || "2", 10),
   dbPoolMax: parseInt(process.env.DB_POOL_MAX || "10", 10),
   jwtSecret: process.env.JWT_SECRET,
+  comfyUiUrl: process.env.COMFYUI_URL || null,
+  comfyUiApiKey: process.env.COMFYUI_API_KEY || null,
 };

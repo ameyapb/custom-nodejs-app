@@ -3,6 +3,7 @@ import {
   findResourceById,
   findResourcesByUserId,
   deleteResourceById,
+  updateResourceFile,
 } from "../db/queries/resourceQueries.js";
 import {
   saveImageFile,
@@ -108,7 +109,15 @@ export async function deleteImageResource(resourceId, userId) {
       };
     }
 
-    await deleteImageFile(resource.file_path);
+    try {
+      await deleteImageFile(resource.file_path);
+    } catch (err) {
+      logger.warn(
+        `Failed to delete image file on disk for resource ${resourceId}`,
+        err
+      );
+    }
+
     await deleteResourceById(resourceId);
 
     return {
@@ -138,6 +147,86 @@ export async function listUserResources(userId) {
       errorOccurred: true,
       errorStatusCode: 500,
       errorMessage: "Failed to list resources",
+    };
+  }
+}
+
+export async function updateImageResource(
+  resourceId,
+  userId,
+  imageBuffer,
+  originalFilename,
+  mimeType
+) {
+  try {
+    const resource = await findResourceById(resourceId);
+    if (!resource) {
+      return {
+        errorOccurred: true,
+        errorStatusCode: 404,
+        errorMessage: "Resource not found",
+      };
+    }
+    if (resource.user_id !== userId) {
+      return {
+        errorOccurred: true,
+        errorStatusCode: 403,
+        errorMessage: "Unauthorized to update this resource",
+      };
+    }
+
+    // Save new file first
+    const {
+      filename: newFilename,
+      filePath: newFilePath,
+      fileSizeBytes,
+    } = await saveImageFile(imageBuffer, originalFilename);
+
+    // Try to update DB to point to new file
+    let updatedResource;
+    try {
+      updatedResource = await updateResourceFile(
+        resourceId,
+        newFilename,
+        newFilePath,
+        fileSizeBytes,
+        mimeType
+      );
+    } catch (dbErr) {
+      // rollback: remove newly saved file
+      try {
+        await deleteImageFile(newFilePath);
+      } catch {
+        // ignore cleanup errors
+      }
+      logger.error(`DB update failed for resource ${resourceId}`, dbErr);
+      return {
+        errorOccurred: true,
+        errorStatusCode: 500,
+        errorMessage: "Failed to update resource metadata",
+      };
+    }
+
+    // On success, remove old file
+    try {
+      await deleteImageFile(resource.file_path);
+    } catch (delErr) {
+      logger.warn(
+        `Failed to delete old image file for resource ${resourceId}`,
+        delErr
+      );
+    }
+
+    return {
+      errorOccurred: false,
+      resource: updatedResource,
+    };
+  } catch (err) {
+    logger.error(`Failed to update image resource ${resourceId}`, err);
+    return {
+      errorOccurred: true,
+      errorStatusCode: 500,
+      errorMessage: "Failed to update image resource",
     };
   }
 }

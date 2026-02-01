@@ -10,12 +10,21 @@ const pool = new Pool({
   max: config.dbPoolMax,
 });
 
-// Set search_path when a new connection is created
-pool.on("connect", async (client) => {
-  await client.query(`SET search_path TO ${config.dbSchema}`);
-  logger.info(
-    "Database connection established. [module=db/connection, event=connect]"
-  );
+// Set search_path when a new client is connected
+pool.on("connect", (client) => {
+  client
+    .query(`SET search_path TO ${config.dbSchema}`)
+    .then(() => {
+      logger.info(
+        `Database connection established. [module=db/connection, event=connect, schema=${config.dbSchema}]`
+      );
+    })
+    .catch((err) => {
+      logger.error(
+        `Failed to set search_path for new connection. [module=db/connection, event=set_search_path]`,
+        err
+      );
+    });
 });
 
 pool.on("error", (err) => {
