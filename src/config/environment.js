@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
+import { mandatoryEnvVars } from "../utils/system/environmentVars.js";
 
 dotenv.config();
+
+mandatoryEnvVars(["DB_URL"]);
 
 export const config = {
   port: process.env.PORT || 3000,

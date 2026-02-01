@@ -1,5 +1,5 @@
 import pkg from "pg";
-import logger from "../utils/logger.js";
+import logger from "../utils/system/logger.js";
 import { config } from "../config/environment.js";
 
 const { Pool } = pkg;

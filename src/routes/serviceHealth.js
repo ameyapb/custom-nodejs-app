@@ -1,6 +1,6 @@
 import express from "express";
 import { runQuery } from "../db/queryRunner.js";
-import logger from "../utils/logger.js";
+import logger from "../utils/system/logger.js";
 
 const router = express.Router();
 

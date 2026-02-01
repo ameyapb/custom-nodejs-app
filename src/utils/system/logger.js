@@ -1,5 +1,5 @@
 import winston from "winston";
-import { config } from "../config/environment.js";
+import { config } from "../../config/environment.js";
 
 const jsonOutput = config.logFormat === "json";
 
