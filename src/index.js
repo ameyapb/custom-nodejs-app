@@ -1,4 +1,6 @@
 import express from "express";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.js";
 import healthRouter from "./routes/health.js";
 import serviceHealthRouter from "./routes/serviceHealth.js";
 import authenticationRouter from "./routes/authenticationRoutes.js";
@@ -8,8 +10,14 @@ import logger from "./utils/system/logger.js";
 const app = express();
 app.use(express.json());
 
+// Swagger documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Health routes
 app.use("/health", healthRouter);
 app.use("/serviceHealth", serviceHealthRouter);
+
+// API routes
 app.use("/api/auth", authenticationRouter);
 app.use("/api/resources", protectedResourceRouter);
 
@@ -17,5 +25,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(
     `Server started. [module=index, event=server_start, url=http://localhost:${PORT}, port=${PORT}]`
+  );
+  logger.info(
+    `Swagger docs available at http://localhost:${PORT}/api-docs. [module=index, event=swagger_ready]`
   );
 });

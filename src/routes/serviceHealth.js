@@ -4,6 +4,54 @@ import logger from "../utils/system/logger.js";
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /serviceHealth:
+ *   get:
+ *     tags:
+ *       - Health
+ *     summary: Service health check
+ *     description: Checks database connectivity and response latency
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Database is operational
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                 db:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "ok"
+ *                     latencyMs:
+ *                       type: integer
+ *                       example: 5
+ *       503:
+ *         description: Database is down
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "error"
+ *                 db:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: "down"
+ *                     error:
+ *                       type: string
+ */
 router.get("/", async (req, res) => {
   try {
     const result = await runQuery("SELECT 1");

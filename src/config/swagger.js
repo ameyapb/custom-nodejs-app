@@ -1,0 +1,72 @@
+import swaggerJsdoc from "swagger-jsdoc";
+
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Node App API",
+      version: "1.0.0",
+      description: "Image resource management API with RBAC authentication",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Development server",
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+      schemas: {
+        UserAccount: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            emailAddress: { type: "string" },
+            assignedApplicationRole: {
+              type: "string",
+              enum: ["admin", "editor", "viewer"],
+            },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        Resource: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            userId: { type: "integer" },
+            filename: { type: "string" },
+            filePath: { type: "string" },
+            fileSizeBytes: { type: "integer" },
+            mimeType: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        Error: {
+          type: "object",
+          properties: {
+            message: { type: "string" },
+          },
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: [
+    "./src/routes/health.js",
+    "./src/routes/serviceHealth.js",
+    "./src/routes/authenticationRoutes.js",
+    "./src/routes/resourceRoutes.js",
+  ],
+};
+
+export const swaggerSpec = swaggerJsdoc(options);
