@@ -3,7 +3,7 @@ import { mandatoryEnvVars } from "../utils/system/environmentVars.js";
 
 dotenv.config();
 
-mandatoryEnvVars(["DB_URL"]);
+mandatoryEnvVars(["DB_URL", "JWT_SECRET"]);
 
 export const config = {
   port: process.env.PORT || 3000,
@@ -12,4 +12,7 @@ export const config = {
   dbUrl: process.env.DB_URL,
   dbSchema: process.env.DB_SCHEMA || "public",
   nodeEnv: process.env.NODE_ENV || "development",
+  dbPoolMin: parseInt(process.env.DB_POOL_MIN || "2", 10),
+  dbPoolMax: parseInt(process.env.DB_POOL_MAX || "10", 10),
+  jwtSecret: process.env.JWT_SECRET,
 };

@@ -1,5 +1,4 @@
 import pool from "./connection.js";
-import { config } from "../config/environment.js";
 
 /**
  * Runs a query against the database and returns the result with latency information.
@@ -14,10 +13,10 @@ import { config } from "../config/environment.js";
  */
 export async function runQuery(text, params = []) {
   const start = Date.now();
+
   try {
-    // Set schema for this query
-    const queryWithSchema = `SET search_path TO ${config.dbSchema}; ${text}`;
-    const res = await pool.query(queryWithSchema, params);
+    const res = await pool.query(text, params);
+
     return {
       rows: res.rows,
       rowCount: res.rowCount,
