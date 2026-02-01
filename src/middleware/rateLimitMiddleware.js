@@ -46,3 +46,23 @@ export const apiRateLimiter = rateLimit({
       .json({ message: "Too many requests. Please try again later." });
   },
 });
+
+// Strict limit for image generation (expensive GPU operation)
+// 5 generations per 10 minutes per IP — prevents queue-flooding ComfyUI.
+export const comfyGenerateRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 5,
+  message: "Too many generation requests. Please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn(
+      `Comfy generation rate limit exceeded. ip=${req.ip}. [module=middleware/rateLimit, event=rate_limit_hit]`
+    );
+    res
+      .status(429)
+      .json({
+        message: "Too many generation requests. Please try again later.",
+      });
+  },
+});

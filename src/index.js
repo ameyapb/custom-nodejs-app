@@ -8,7 +8,10 @@ import protectedResourceRouter from "./routes/resourceRoutes.js";
 import comfyRouter from "./routes/comfyRoutes.js";
 import logger from "./utils/system/logger.js";
 import { runMigrations } from "./db/migrations.js";
-import { apiRateLimiter } from "./middleware/rateLimitMiddleware.js";
+import {
+  apiRateLimiter,
+  comfyGenerateRateLimiter,
+} from "./middleware/rateLimitMiddleware.js";
 
 const app = express();
 app.use(express.json());
@@ -37,7 +40,7 @@ app.use("/serviceHealth", serviceHealthRouter);
 
 // API routes
 app.use("/api/auth", authenticationRouter);
-app.use("/api/comfy", comfyRouter);
+app.use("/api/comfy", comfyGenerateRateLimiter, comfyRouter);
 app.use("/api/resources", apiRateLimiter, protectedResourceRouter);
 
 const PORT = process.env.PORT || 3000;

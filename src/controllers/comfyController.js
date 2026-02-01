@@ -2,6 +2,19 @@ import { generateImage } from "../services/comfyWorkflowService.js";
 import { createImageResource } from "../services/resourceService.js";
 import logger from "../utils/system/logger.js";
 
+// Same shape contract as resourceController — no file_path in responses.
+function mapResourceForResponse(dbRow) {
+  return {
+    id: dbRow.id,
+    userId: dbRow.user_id,
+    filename: dbRow.filename,
+    fileSizeBytes: dbRow.file_size_bytes,
+    mimeType: dbRow.mime_type,
+    createdAt: dbRow.created_at,
+    updatedAt: dbRow.updated_at,
+  };
+}
+
 export async function handleGenerateFromPrompt(req, res) {
   try {
     const userId = req.authenticatedUserAccountId;
@@ -51,15 +64,13 @@ export async function handleGenerateFromPrompt(req, res) {
     return res.status(201).json({
       message: "Image generated successfully",
       promptId,
-      resource: result.resource,
+      resource: mapResourceForResponse(result.resource),
     });
   } catch (err) {
     logger.error(
       "Generation failed unexpectedly. [module=controllers/comfy, event=generate_error]",
       {
         message: err.message,
-        // stack: err.stack,
-        // Axios-specific info, if it exists
         status: err.response?.status ?? err.status,
         statusText: err.response?.statusText ?? err.statusText,
         url: err.config?.url ?? err.url,

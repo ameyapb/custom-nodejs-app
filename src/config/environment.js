@@ -5,12 +5,19 @@ dotenv.config();
 
 mandatoryEnvVars(["DB_URL", "JWT_SECRET", "COMFYUI_URL"]);
 
+const rawSchema = process.env.DB_SCHEMA || "public";
+if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(rawSchema)) {
+  throw new Error(
+    `Invalid DB_SCHEMA value: "${rawSchema}". Must be a valid SQL identifier (letters, digits, underscores; cannot start with a digit).`
+  );
+}
+
 export const config = {
   port: process.env.PORT || 3000,
   logLevel: (process.env.LOG_LEVEL || "info").toLowerCase(),
   logFormat: process.env.LOG_FORMAT || "pretty",
   dbUrl: process.env.DB_URL,
-  dbSchema: process.env.DB_SCHEMA || "public",
+  dbSchema: rawSchema,
   nodeEnv: process.env.NODE_ENV || "development",
   dbPoolMin: parseInt(process.env.DB_POOL_MIN || "2", 10),
   dbPoolMax: parseInt(process.env.DB_POOL_MAX || "10", 10),

@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS resources (
-  id              SERIAL PRIMARY KEY,
-  user_id         INTEGER          NOT NULL REFERENCES user_accounts(id) ON DELETE CASCADE,
+  id              UUID             NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         UUID             NOT NULL REFERENCES user_accounts(id) ON DELETE CASCADE,
   filename        TEXT             NOT NULL,
   file_path       TEXT             NOT NULL,
   file_size_bytes INTEGER          NOT NULL,

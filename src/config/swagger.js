@@ -26,25 +26,26 @@ const options = {
         UserAccount: {
           type: "object",
           properties: {
-            id: { type: "integer" },
+            id: { type: "string", format: "uuid" },
             emailAddress: { type: "string" },
             assignedApplicationRole: {
               type: "string",
               enum: ["admin", "editor", "viewer"],
             },
             createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
           },
         },
         Resource: {
           type: "object",
           properties: {
-            id: { type: "integer" },
-            userId: { type: "integer" },
+            id: { type: "string", format: "uuid" },
+            userId: { type: "string", format: "uuid" },
             filename: { type: "string" },
-            filePath: { type: "string" },
             fileSizeBytes: { type: "integer" },
             mimeType: { type: "string" },
             createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
           },
         },
         Error: {

@@ -3,9 +3,26 @@ import {
   retrieveImageResource,
   deleteImageResource,
   updateImageResource,
+  listUserResources,
 } from "../services/resourceService.js";
 import logger from "../utils/system/logger.js";
 
+// ─── Response shape ──────────────────────────────────────────────────────────
+// Strip the absolute server path before sending resource metadata to the client.
+// Everything else (id, user_id, filename, mime_type, sizes, timestamps) is safe.
+function mapResourceForResponse(dbRow) {
+  return {
+    id: dbRow.id,
+    userId: dbRow.user_id,
+    filename: dbRow.filename,
+    fileSizeBytes: dbRow.file_size_bytes,
+    mimeType: dbRow.mime_type,
+    createdAt: dbRow.created_at,
+    updatedAt: dbRow.updated_at,
+  };
+}
+
+// ─── CREATE ──────────────────────────────────────────────────────────────────
 export async function handleCreateResourceRequest(req, res) {
   try {
     const userId = req.authenticatedUserAccountId;
@@ -37,7 +54,7 @@ export async function handleCreateResourceRequest(req, res) {
 
     return res.status(201).json({
       message: "Image resource created successfully",
-      resource: result.resource,
+      resource: mapResourceForResponse(result.resource),
     });
   } catch (err) {
     logger.error(
@@ -48,6 +65,36 @@ export async function handleCreateResourceRequest(req, res) {
   }
 }
 
+// ─── LIST ────────────────────────────────────────────────────────────────────
+export async function handleListResourcesRequest(req, res) {
+  try {
+    const userId = req.authenticatedUserAccountId;
+
+    const result = await listUserResources(userId);
+
+    if (result.errorOccurred) {
+      return res
+        .status(result.errorStatusCode)
+        .json({ message: result.errorMessage });
+    }
+
+    logger.info(
+      `Resources listed. userId=${userId} count=${result.resources.length}. [module=controllers/resource, event=list_success]`
+    );
+
+    return res.status(200).json({
+      resources: result.resources.map(mapResourceForResponse),
+    });
+  } catch (err) {
+    logger.error(
+      "Resource listing failed unexpectedly. [module=controllers/resource, event=list_error]",
+      err
+    );
+    return res.status(500).json({ message: "An unexpected error occurred" });
+  }
+}
+
+// ─── READ ────────────────────────────────────────────────────────────────────
 export async function handleReadResourceRequest(req, res) {
   try {
     const { resourceId } = req.params;
@@ -76,6 +123,7 @@ export async function handleReadResourceRequest(req, res) {
   }
 }
 
+// ─── UPDATE ──────────────────────────────────────────────────────────────────
 export async function handleUpdateResourceRequest(req, res) {
   try {
     const { resourceId } = req.params;
@@ -109,9 +157,10 @@ export async function handleUpdateResourceRequest(req, res) {
       `Resource updated. id=${result.resource.id} userId=${userId}. [module=controllers/resource, event=update_success]`
     );
 
-    return res
-      .status(200)
-      .json({ message: "Resource updated", resource: result.resource });
+    return res.status(200).json({
+      message: "Resource updated",
+      resource: mapResourceForResponse(result.resource),
+    });
   } catch (err) {
     logger.error(
       "Resource update failed unexpectedly. [module=controllers/resource, event=update_error]",
@@ -121,6 +170,7 @@ export async function handleUpdateResourceRequest(req, res) {
   }
 }
 
+// ─── DELETE ──────────────────────────────────────────────────────────────────
 export async function handleDeleteResourceRequest(req, res) {
   try {
     const { resourceId } = req.params;

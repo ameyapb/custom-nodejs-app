@@ -7,6 +7,7 @@ import {
 } from "../middleware/uploadMiddleware.js";
 import { DEFINED_RESOURCE_ACTIONS } from "../config/rolesAndPermissionsConfig.js";
 import {
+  handleListResourcesRequest,
   handleCreateResourceRequest,
   handleReadResourceRequest,
   handleUpdateResourceRequest,
@@ -14,6 +15,38 @@ import {
 } from "../controllers/resourceController.js";
 
 const protectedResourceRouter = express.Router();
+
+/**
+ * @swagger
+ * /api/resources:
+ *   get:
+ *     tags:
+ *       - Resources
+ *     summary: List all resources owned by the authenticated user
+ *     description: Returns metadata for every image the current user has uploaded or generated. Requires READ permission.
+ *     responses:
+ *       200:
+ *         description: List of resources
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 resources:
+ *                   type: array
+ *                   items:
+ *                     $ref: "#/components/schemas/Resource"
+ *       401:
+ *         description: Unauthorized or missing token
+ *       500:
+ *         description: Server error
+ */
+protectedResourceRouter.get(
+  "/",
+  authenticateRequestViaJsonWebToken,
+  requireRolePermissionForAction(DEFINED_RESOURCE_ACTIONS.ACTION_READ),
+  handleListResourcesRequest
+);
 
 /**
  * @swagger
@@ -77,7 +110,8 @@ protectedResourceRouter.post(
  *         name: resourceId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *     responses:
  *       200:
  *         description: Image file
@@ -108,17 +142,48 @@ protectedResourceRouter.get(
  *   put:
  *     tags:
  *       - Resources
- *     summary: Update a resource (not yet implemented)
- *     description: Future endpoint for resource updates. Requires UPDATE permission
+ *     summary: Update an existing image resource
+ *     description: Replaces the image file for an existing resource. Requires UPDATE permission (admin, editor). Only the owning user may update.
  *     parameters:
  *       - in: path
  *         name: resourceId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Replacement image file (JPEG, PNG, GIF, WebP). Max 10MB
  *     responses:
- *       501:
- *         description: Not implemented
+ *       200:
+ *         description: Resource updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 resource:
+ *                   $ref: "#/components/schemas/Resource"
+ *       400:
+ *         description: No file provided
+ *       401:
+ *         description: Unauthorized or missing token
+ *       403:
+ *         description: Insufficient permissions or not resource owner
+ *       404:
+ *         description: Resource not found
+ *       500:
+ *         description: Server error
  */
 protectedResourceRouter.put(
   "/:resourceId",
@@ -142,7 +207,8 @@ protectedResourceRouter.put(
  *         name: resourceId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *     responses:
  *       204:
  *         description: Resource deleted successfully
