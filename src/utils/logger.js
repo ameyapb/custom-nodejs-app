@@ -1,9 +1,7 @@
-import dotenv from "dotenv";
 import winston from "winston";
-dotenv.config();
+import { config } from "../config/environment.js";
 
-const level = (process.env.LOG_LEVEL || "info").toLowerCase();
-const jsonOutput = (process.env.LOG_FORMAT || "pretty") === "json";
+const jsonOutput = config.logFormat === "json";
 
 const formats = [
   winston.format.timestamp({ format: "YYYY-MM-DDTHH:mm:ss.SSSZ" }),
@@ -26,7 +24,7 @@ if (jsonOutput) {
 }
 
 const logger = winston.createLogger({
-  level,
+  level: config.logLevel,
   format: winston.format.combine(...formats),
   transports: [
     new winston.transports.Console({

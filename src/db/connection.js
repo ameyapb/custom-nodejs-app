@@ -1,12 +1,11 @@
-import dotenv from "dotenv";
 import pkg from "pg";
 import logger from "../utils/logger.js";
+import { config } from "../config/environment.js";
 
-dotenv.config();
 const { Pool } = pkg;
 
 const pool = new Pool({
-  connectionString: process.env.DB_URL,
+  connectionString: config.dbUrl,
 });
 
 pool.on("connect", () => {
