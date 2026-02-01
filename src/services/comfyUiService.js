@@ -37,7 +37,16 @@ export async function callComfyApi(
   } catch (err) {
     logger.error(
       `ComfyUI API call failed: ${method.toUpperCase()} ${url}. [module=services/comfyUi, event=api_call_failed]`,
-      err
+      {
+        message: err.message,
+        // stack: err.stack,
+        // Axios-specific info, if it exists
+        status: err.response?.status ?? err.status,
+        statusText: err.response?.statusText ?? err.statusText,
+        url: err.config?.url ?? err.url,
+        method: err.config?.method ?? err.method,
+        responseData: err.response?.data ?? err.data,
+      }
     );
     return {
       errorOccurred: true,

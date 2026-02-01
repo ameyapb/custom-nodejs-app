@@ -56,8 +56,18 @@ export async function handleGenerateFromPrompt(req, res) {
   } catch (err) {
     logger.error(
       "Generation failed unexpectedly. [module=controllers/comfy, event=generate_error]",
-      err
+      {
+        message: err.message,
+        // stack: err.stack,
+        // Axios-specific info, if it exists
+        status: err.response?.status ?? err.status,
+        statusText: err.response?.statusText ?? err.statusText,
+        url: err.config?.url ?? err.url,
+        method: err.config?.method ?? err.method,
+        responseData: err.response?.data ?? err.data,
+      }
     );
+
     return res.status(500).json({ message: "An unexpected error occurred" });
   }
 }

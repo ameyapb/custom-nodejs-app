@@ -1,5 +1,6 @@
 import winston from "winston";
 import { config } from "../../config/environment.js";
+import util from "util";
 
 const jsonOutput = config.logFormat === "json";
 
@@ -14,8 +15,9 @@ if (jsonOutput) {
   formats.push(
     winston.format.colorize({ all: true }),
     winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
+      // Use util.inspect instead of JSON.stringify to safely handle circular references
       const metaStr = Object.keys(meta).length
-        ? ` ${JSON.stringify(meta)}`
+        ? ` ${util.inspect(meta, { depth: null })}`
         : "";
       const msg = stack || message;
       return `[${timestamp}] [${level}] ${msg}${metaStr}`;

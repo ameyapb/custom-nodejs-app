@@ -66,6 +66,7 @@ const options = {
     "./src/routes/serviceHealth.js",
     "./src/routes/authenticationRoutes.js",
     "./src/routes/resourceRoutes.js",
+    "./src/routes/comfyRoutes.js",
   ],
 };
 
