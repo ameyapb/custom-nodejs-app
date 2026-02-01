@@ -1,6 +1,10 @@
 import express from "express";
 import { authenticateRequestViaJsonWebToken } from "../middleware/authenticationMiddleware.js";
 import { requireRolePermissionForAction } from "../middleware/authorizationMiddleware.js";
+import {
+  uploadImageMiddleware,
+  handleMulterErrors,
+} from "../middleware/uploadMiddleware.js";
 import { DEFINED_RESOURCE_ACTIONS } from "../config/rolesAndPermissionsConfig.js";
 import {
   handleCreateResourceRequest,
@@ -15,6 +19,8 @@ protectedResourceRouter.post(
   "/",
   authenticateRequestViaJsonWebToken,
   requireRolePermissionForAction(DEFINED_RESOURCE_ACTIONS.ACTION_CREATE),
+  uploadImageMiddleware.single("image"),
+  handleMulterErrors,
   handleCreateResourceRequest
 );
 
