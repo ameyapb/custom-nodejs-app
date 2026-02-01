@@ -1,5 +1,9 @@
 import express from "express";
 import {
+  registrationRateLimiter,
+  loginRateLimiter,
+} from "../middleware/rateLimitMiddleware.js";
+import {
   registrationRequestValidationRules,
   loginRequestValidationRules,
 } from "../utils/auth/validators/userAccountValidator.js";
@@ -17,7 +21,7 @@ const authenticationRouter = express.Router();
  *     tags:
  *       - Authentication
  *     summary: Register a new user account
- *     description: Creates a new user account and returns a JWT token
+ *     description: Creates a new user account and returns a JWT token. Rate limited to 5 registrations per IP per 15 minutes.
  *     security: []
  *     requestBody:
  *       required: true
@@ -42,26 +46,16 @@ const authenticationRouter = express.Router();
  *     responses:
  *       201:
  *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 signedAuthenticationToken:
- *                   type: string
- *                 userAccountId:
- *                   type: integer
- *                 assignedApplicationRole:
- *                   type: string
  *       400:
  *         description: Validation error
  *       409:
  *         description: Email already exists
+ *       429:
+ *         description: Too many registration attempts
  */
 authenticationRouter.post(
   "/register",
+  registrationRateLimiter,
   registrationRequestValidationRules,
   handleUserRegistrationRequest
 );
@@ -73,7 +67,7 @@ authenticationRouter.post(
  *     tags:
  *       - Authentication
  *     summary: Login to existing account
- *     description: Authenticates user and returns a JWT token
+ *     description: Authenticates user and returns a JWT token. Rate limited to 10 attempts per IP per 15 minutes.
  *     security: []
  *     requestBody:
  *       required: true
@@ -93,26 +87,16 @@ authenticationRouter.post(
  *     responses:
  *       200:
  *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 signedAuthenticationToken:
- *                   type: string
- *                 userAccountId:
- *                   type: integer
- *                 assignedApplicationRole:
- *                   type: string
  *       400:
  *         description: Validation error
  *       401:
  *         description: Invalid credentials
+ *       429:
+ *         description: Too many login attempts
  */
 authenticationRouter.post(
   "/login",
+  loginRateLimiter,
   loginRequestValidationRules,
   handleUserLoginRequest
 );

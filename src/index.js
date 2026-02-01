@@ -1,6 +1,7 @@
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.js";
+import { apiRateLimiter } from "./middleware/rateLimitMiddleware.js";
 import healthRouter from "./routes/health.js";
 import serviceHealthRouter from "./routes/serviceHealth.js";
 import authenticationRouter from "./routes/authenticationRoutes.js";
@@ -35,7 +36,7 @@ app.use("/serviceHealth", serviceHealthRouter);
 
 // API routes
 app.use("/api/auth", authenticationRouter);
-app.use("/api/resources", protectedResourceRouter);
+app.use("/api/resources", apiRateLimiter, protectedResourceRouter);
 
 const PORT = process.env.PORT || 3000;
 
