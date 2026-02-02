@@ -1,12 +1,1088 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Generator</title>
+    <title>AI Image Generator</title>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8f9fa;
+        --bg-tertiary: #e9ecef;
+        --text-primary: #212529;
+        --text-secondary: #6c757d;
+        --border-color: #dee2e6;
+        --accent-color: #0d6efd;
+        --accent-hover: #0b5ed7;
+        --success-color: #198754;
+        --danger-color: #dc3545;
+        --shadow: rgba(0, 0, 0, 0.1);
+        --shadow-strong: rgba(0, 0, 0, 0.15);
+        --overlay: rgba(0, 0, 0, 0.5);
+      }
+
+      [data-theme="dark"] {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: #3d3d3d;
+        --text-primary: #f8f9fa;
+        --text-secondary: #adb5bd;
+        --border-color: #495057;
+        --accent-color: #0d6efd;
+        --accent-hover: #3d8bfd;
+        --success-color: #198754;
+        --danger-color: #dc3545;
+        --shadow: rgba(0, 0, 0, 0.3);
+        --shadow-strong: rgba(0, 0, 0, 0.5);
+        --overlay: rgba(0, 0, 0, 0.7);
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+          "Ubuntu", "Cantarell", sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      .app-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        background-color: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px var(--shadow);
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .theme-toggle {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+        color: var(--text-primary);
+      }
+
+      .theme-toggle:hover {
+        background-color: var(--bg-tertiary);
+      }
+
+      .logout-btn {
+        background-color: var(--danger-color);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: opacity 0.2s;
+      }
+
+      .logout-btn:hover {
+        opacity: 0.9;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 2rem 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .auth-container {
+        max-width: 400px;
+        margin: 4rem auto;
+        padding: 2rem;
+        background-color: var(--bg-secondary);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px var(--shadow-strong);
+      }
+
+      .auth-container h2 {
+        margin-bottom: 1.5rem;
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: border-color 0.2s;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: var(--accent-color);
+      }
+
+      .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+        font-family: inherit;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background-color: var(--accent-color);
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background-color: var(--accent-hover);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background-color: transparent;
+        color: var(--accent-color);
+        border: 1px solid var(--accent-color);
+        margin-top: 1rem;
+      }
+
+      .btn-secondary:hover {
+        background-color: var(--accent-color);
+        color: white;
+      }
+
+      .error-message {
+        background-color: #f8d7da;
+        color: #842029;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border: 1px solid #f5c2c7;
+      }
+
+      [data-theme="dark"] .error-message {
+        background-color: #2c0b0e;
+        color: #ea868f;
+        border-color: #842029;
+      }
+
+      .success-message {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border: 1px solid #badbcc;
+      }
+
+      [data-theme="dark"] .success-message {
+        background-color: #051b11;
+        color: #75b798;
+        border-color: #0f5132;
+      }
+
+      .generator-section {
+        background-color: var(--bg-secondary);
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px var(--shadow);
+      }
+
+      .generator-section h2 {
+        margin-bottom: 1.5rem;
+      }
+
+      .gallery-section h2 {
+        margin-bottom: 1.5rem;
+      }
+
+      .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .gallery-item {
+        background-color: var(--bg-secondary);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px var(--shadow);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        cursor: pointer;
+      }
+
+      .gallery-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px var(--shadow-strong);
+      }
+
+      .gallery-item img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .gallery-item-info {
+        padding: 1rem;
+      }
+
+      .gallery-item-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .btn-delete {
+        flex: 1;
+        padding: 0.5rem;
+        background-color: var(--danger-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: opacity 0.2s;
+      }
+
+      .btn-delete:hover {
+        opacity: 0.9;
+      }
+
+      .btn-delete:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .gallery-item-filename {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .gallery-item-meta {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 3px solid var(--border-color);
+        border-radius: 50%;
+        border-top-color: var(--accent-color);
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+      }
+
+      .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+
+      /* Fullscreen Modal */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--overlay);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .modal-content {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+        animation: scaleIn 0.2s ease-out;
+      }
+
+      @keyframes scaleIn {
+        from {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      .modal-content img {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        display: block;
+      }
+
+      .modal-close {
+        position: absolute;
+        top: -3rem;
+        right: 0;
+        background-color: rgba(255, 255, 255, 0.9);
+        color: #000;
+        border: none;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+        font-weight: bold;
+      }
+
+      .modal-close:hover {
+        background-color: #fff;
+      }
+
+      [data-theme="dark"] .modal-close {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+
+      [data-theme="dark"] .modal-close:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .modal-info {
+        position: absolute;
+        bottom: -4rem;
+        left: 0;
+        right: 0;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 1rem;
+        border-radius: 8px;
+        color: #000;
+      }
+
+      [data-theme="dark"] .modal-info {
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+      }
+
+      .modal-info p {
+        margin: 0.25rem 0;
+        font-size: 0.875rem;
+      }
+
+      @media (max-width: 768px) {
+        .header {
+          padding: 1rem;
+        }
+
+        .header h1 {
+          font-size: 1.25rem;
+        }
+
+        .main-content {
+          padding: 1rem;
+        }
+
+        .generator-section {
+          padding: 1.5rem;
+        }
+
+        .gallery-grid {
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 1rem;
+        }
+
+        .gallery-item img {
+          height: 150px;
+        }
+
+        .modal-close {
+          top: 1rem;
+          right: 1rem;
+        }
+
+        .modal-info {
+          position: static;
+          margin-top: 1rem;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      const API_BASE = "";
+
+      function App() {
+        const [theme, setTheme] = useState(() => {
+          const saved = localStorage.getItem("theme");
+          return saved || "light";
+        });
+        const [token, setToken] = useState(() =>
+          localStorage.getItem("authToken")
+        );
+        const [view, setView] = useState("login");
+        const [user, setUser] = useState(null);
+
+        useEffect(() => {
+          document.documentElement.setAttribute("data-theme", theme);
+          localStorage.setItem("theme", theme);
+        }, [theme]);
+
+        const toggleTheme = () => {
+          setTheme((prev) => (prev === "light" ? "dark" : "light"));
+        };
+
+        const handleLogin = (authToken, userData) => {
+          setToken(authToken);
+          setUser(userData);
+          localStorage.setItem("authToken", authToken);
+        };
+
+        const handleLogout = () => {
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem("authToken");
+          setView("login");
+        };
+
+        return (
+          <div className="app-container">
+            <header className="header">
+              <h1>🎨 AI Image Generator</h1>
+              <div className="header-actions">
+                <button
+                  className="theme-toggle"
+                  onClick={toggleTheme}
+                  aria-label="Toggle theme"
+                >
+                  {theme === "light" ? "🌙" : "☀️"}
+                </button>
+                {token && (
+                  <button className="logout-btn" onClick={handleLogout}>
+                    Logout
+                  </button>
+                )}
+              </div>
+            </header>
+
+            <main className="main-content">
+              {!token ? (
+                <AuthSection
+                  onLogin={handleLogin}
+                  view={view}
+                  setView={setView}
+                />
+              ) : (
+                <Dashboard token={token} user={user} />
+              )}
+            </main>
+          </div>
+        );
+      }
+
+      function AuthSection({ onLogin, view, setView }) {
+        const [formData, setFormData] = useState({
+          emailAddress: "",
+          plainTextPassword: "",
+          assignedApplicationRole: "viewer",
+        });
+        const [error, setError] = useState("");
+        const [loading, setLoading] = useState(false);
+
+        const handleSubmit = async (e) => {
+          e.preventDefault();
+          setError("");
+          setLoading(true);
+
+          const endpoint =
+            view === "login" ? "/api/auth/login" : "/api/auth/register";
+          const body =
+            view === "login"
+              ? {
+                  emailAddress: formData.emailAddress,
+                  plainTextPassword: formData.plainTextPassword,
+                }
+              : formData;
+
+          try {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.message || "Authentication failed");
+            }
+
+            onLogin(data.signedAuthenticationToken, {
+              id: data.userAccountId,
+              role: data.assignedApplicationRole,
+            });
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return (
+          <div className="auth-container">
+            <h2>{view === "login" ? "Login" : "Register"}</h2>
+
+            {error && <div className="error-message">{error}</div>}
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={formData.emailAddress}
+                  onChange={(e) =>
+                    setFormData({ ...formData, emailAddress: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={formData.plainTextPassword}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      plainTextPassword: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+
+              {view === "register" && (
+                <div className="form-group">
+                  <label>Role</label>
+                  <select
+                    value={formData.assignedApplicationRole}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        assignedApplicationRole: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="viewer">Viewer</option>
+                    <option value="editor">Editor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="loading-spinner"></span>
+                ) : view === "login" ? (
+                  "Login"
+                ) : (
+                  "Register"
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setView(view === "login" ? "register" : "login")}
+              >
+                {view === "login"
+                  ? "Need an account? Register"
+                  : "Have an account? Login"}
+              </button>
+            </form>
+          </div>
+        );
+      }
+
+      function Dashboard({ token }) {
+        const [resources, setResources] = useState([]);
+        const [imageUrls, setImageUrls] = useState({});
+        const [loading, setLoading] = useState(true);
+        const [generating, setGenerating] = useState(false);
+        const [deleting, setDeleting] = useState(null);
+        const [error, setError] = useState("");
+        const [success, setSuccess] = useState("");
+        const [selectedImage, setSelectedImage] = useState(null);
+        const [formData, setFormData] = useState({
+          positivePrompt: "",
+          negativePrompt: "",
+        });
+
+        const fetchImageAsDataUrl = async (resourceId) => {
+          try {
+            const response = await fetch(
+              `${API_BASE}/api/resources/${resourceId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            if (response.ok) {
+              const blob = await response.blob();
+              return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+              });
+            }
+          } catch (err) {
+            console.error("Failed to fetch image:", err);
+            return null;
+          }
+        };
+
+        const fetchResources = async () => {
+          try {
+            const response = await fetch(`${API_BASE}/api/resources`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              setResources(data.resources);
+
+              // Fetch all images as data URLs
+              const urls = {};
+              for (const resource of data.resources) {
+                const dataUrl = await fetchImageAsDataUrl(resource.id);
+                if (dataUrl) {
+                  urls[resource.id] = dataUrl;
+                }
+              }
+              setImageUrls(urls);
+            }
+          } catch (err) {
+            console.error("Failed to fetch resources:", err);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        useEffect(() => {
+          fetchResources();
+        }, [token]);
+
+        const handleGenerate = async (e) => {
+          e.preventDefault();
+          setError("");
+          setSuccess("");
+          setGenerating(true);
+
+          try {
+            const response = await fetch(`${API_BASE}/api/comfy/generate`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.message || "Generation failed");
+            }
+
+            setSuccess("Image generated successfully!");
+            setFormData({ positivePrompt: "", negativePrompt: "" });
+            fetchResources();
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setGenerating(false);
+          }
+        };
+
+        const handleDelete = async (resourceId, e) => {
+          e.stopPropagation(); // Prevent opening fullscreen when clicking delete
+
+          if (!confirm("Are you sure you want to delete this image?")) {
+            return;
+          }
+
+          setDeleting(resourceId);
+          setError("");
+          setSuccess("");
+
+          try {
+            const response = await fetch(
+              `${API_BASE}/api/resources/${resourceId}`,
+              {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!response.ok) {
+              const data = await response.json();
+              throw new Error(data.message || "Delete failed");
+            }
+
+            setSuccess("Image deleted successfully!");
+
+            // Remove from state immediately
+            setResources((prev) => prev.filter((r) => r.id !== resourceId));
+            setImageUrls((prev) => {
+              const newUrls = { ...prev };
+              delete newUrls[resourceId];
+              return newUrls;
+            });
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setDeleting(null);
+          }
+        };
+
+        const openFullscreen = (resource) => {
+          setSelectedImage(resource);
+        };
+
+        const closeFullscreen = () => {
+          setSelectedImage(null);
+        };
+
+        useEffect(() => {
+          const handleEscape = (e) => {
+            if (e.key === "Escape") {
+              closeFullscreen();
+            }
+          };
+
+          if (selectedImage) {
+            document.addEventListener("keydown", handleEscape);
+            document.body.style.overflow = "hidden";
+          } else {
+            document.body.style.overflow = "auto";
+          }
+
+          return () => {
+            document.removeEventListener("keydown", handleEscape);
+            document.body.style.overflow = "auto";
+          };
+        }, [selectedImage]);
+
+        return (
+          <>
+            <div className="generator-section">
+              <h2>Generate New Image</h2>
+
+              {error && <div className="error-message">{error}</div>}
+              {success && <div className="success-message">{success}</div>}
+
+              <form onSubmit={handleGenerate}>
+                <div className="form-group">
+                  <label>Positive Prompt *</label>
+                  <textarea
+                    value={formData.positivePrompt}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        positivePrompt: e.target.value,
+                      })
+                    }
+                    placeholder="Describe what you want to see..."
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Negative Prompt (Optional)</label>
+                  <textarea
+                    value={formData.negativePrompt}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        negativePrompt: e.target.value,
+                      })
+                    }
+                    placeholder="Describe what you don't want to see..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={generating}
+                >
+                  {generating ? (
+                    <>
+                      <span className="loading-spinner"></span>
+                      <span style={{ marginLeft: "0.5rem" }}>
+                        Generating...
+                      </span>
+                    </>
+                  ) : (
+                    "Generate Image"
+                  )}
+                </button>
+              </form>
+            </div>
+
+            <div className="gallery-section">
+              <h2>Your Generated Images ({resources.length})</h2>
+
+              {loading ? (
+                <div className="loading-state">
+                  <div className="loading-spinner"></div>
+                  <p>Loading your images...</p>
+                </div>
+              ) : resources.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-state-icon">🖼️</div>
+                  <p>No images yet. Generate your first one above!</p>
+                </div>
+              ) : (
+                <div className="gallery-grid">
+                  {resources.map((resource) => (
+                    <div key={resource.id} className="gallery-item">
+                      <div
+                        onClick={() => openFullscreen(resource)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {imageUrls[resource.id] ? (
+                          <img
+                            src={imageUrls[resource.id]}
+                            alt={resource.filename}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "250px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              backgroundColor: "var(--bg-tertiary)",
+                            }}
+                          >
+                            <span className="loading-spinner"></span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="gallery-item-info">
+                        <div className="gallery-item-filename">
+                          {resource.filename}
+                        </div>
+                        <div className="gallery-item-meta">
+                          {(resource.fileSizeBytes / 1024).toFixed(1)} KB
+                        </div>
+                        <div className="gallery-item-actions">
+                          <button
+                            className="btn-delete"
+                            onClick={(e) => handleDelete(resource.id, e)}
+                            disabled={deleting === resource.id}
+                          >
+                            {deleting === resource.id
+                              ? "Deleting..."
+                              : "🗑️ Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {selectedImage && (
+              <ImageModal
+                resource={selectedImage}
+                imageUrl={imageUrls[selectedImage.id]}
+                onClose={closeFullscreen}
+              />
+            )}
+          </>
+        );
+      }
+
+      function ImageModal({ resource, imageUrl, onClose }) {
+        const handleOverlayClick = (e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        };
+
+        const formatDate = (dateString) => {
+          return new Date(dateString).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        };
+
+        return (
+          <div className="modal-overlay" onClick={handleOverlayClick}>
+            <div className="modal-content">
+              <button
+                className="modal-close"
+                onClick={onClose}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              {imageUrl ? (
+                <img src={imageUrl} alt={resource.filename} />
+              ) : (
+                <div
+                  style={{
+                    width: "300px",
+                    height: "300px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "var(--bg-tertiary)",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <span className="loading-spinner"></span>
+                </div>
+              )}
+              <div className="modal-info">
+                <p>
+                  <strong>Filename:</strong> {resource.filename}
+                </p>
+                <p>
+                  <strong>Size:</strong>{" "}
+                  {(resource.fileSizeBytes / 1024).toFixed(1)} KB
+                </p>
+                <p>
+                  <strong>Created:</strong> {formatDate(resource.createdAt)}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
   </body>
 </html>
