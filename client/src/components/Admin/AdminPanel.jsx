@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { adminAPI } from "../../services/api";
+import { Alert } from "../Common/Alert";
 
 export const AdminPanel = ({ token, userRole }) => {
   const [users, setUsers] = useState([]);
@@ -54,11 +55,10 @@ export const AdminPanel = ({ token, userRole }) => {
 
   if (userRole !== "admin") {
     return (
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-        <p className="text-yellow-700 dark:text-yellow-400">
-          ⚠️ Admin access required to view this panel
-        </p>
-      </div>
+      <Alert
+        type="warning"
+        message="Admin access required to view this panel"
+      />
     );
   }
 
@@ -67,31 +67,22 @@ export const AdminPanel = ({ token, userRole }) => {
       <h2 className="heading-secondary mb-6">User Management</h2>
 
       {successMessage && (
-        <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-4 mb-6 flex justify-between items-center">
-          <p className="text-green-700 dark:text-green-300 font-medium">
-            ✓ {successMessage}
-          </p>
-          <button
-            onClick={() => setSuccessMessage("")}
-            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
-          >
-            ✕
-          </button>
-        </div>
+        <Alert
+          type="success"
+          message={successMessage}
+          onDismiss={() => setSuccessMessage("")}
+          autoDismiss
+          className="mb-6"
+        />
       )}
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg p-4 mb-6 flex justify-between items-center">
-          <p className="text-red-700 dark:text-red-300 font-medium">
-            ⚠️ {error}
-          </p>
-          <button
-            onClick={() => setError("")}
-            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
-          >
-            ✕
-          </button>
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          onDismiss={() => setError("")}
+          className="mb-6"
+        />
       )}
 
       {loading ? (

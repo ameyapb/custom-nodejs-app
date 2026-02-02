@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthLayout } from "./AuthLayout";
+import { Alert } from "../Common/Alert";
 
 export const Login = () => {
   const [email, setEmail] = useState("");
@@ -57,11 +58,7 @@ export const Login = () => {
           required
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-300 rounded-lg">
-            <p className="text-red-500 text-sm">{error}</p>
-          </div>
-        )}
+        {error && <Alert type="error" message={error} />}
         <button
           type="submit"
           disabled={loading}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AuthorizedImage } from "../Common/AuthorizedImage";
+import { ImageCard } from "../Common/ImageCard";
 import { ImageModal } from "./ImageModal";
 
 export const Gallery = ({ images, onDelete, loading, error, token }) => {
@@ -39,30 +39,15 @@ export const Gallery = ({ images, onDelete, loading, error, token }) => {
       <h2 className="heading-secondary mb-6">Generated Images</h2>
       <div className="grid grid-cols-4 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
         {images.map((image) => (
-          <div key={image.id} className="flex flex-col h-full">
-            <button
-              onClick={() => setSelectedImage(image)}
-              className="card p-0 overflow-hidden transition flex-1 flex flex-col hover:ring-2 hover:ring-blue-400"
-              title={image.filename}
-            >
-              <AuthorizedImage
-                token={token}
-                resourceId={image.id}
-                alt={image.filename}
-                className="w-full h-24 object-cover flex-1"
-              />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(image.id);
-              }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white py-1.5 px-2 text-xs font-semibold transition rounded-b-md"
-              title="Delete image"
-            >
-              Delete
-            </button>
-          </div>
+          <ImageCard
+            key={image.id}
+            image={image}
+            token={token}
+            variant="gallery"
+            onClick={setSelectedImage}
+            onDelete={onDelete}
+            confirmDelete={false}
+          />
         ))}
       </div>
 

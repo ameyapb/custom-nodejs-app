@@ -120,16 +120,6 @@ export const resourcesAPI = {
       return data;
     }),
 
-  // List all resources
-  getAll: (token) =>
-    fetch(`${API_BASE}/resources`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(async (r) => {
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.message || "Failed to fetch resources");
-      return data;
-    }),
-
   // Delete resource
   delete: (token, resourceId) =>
     fetch(`${API_BASE}/resources/${resourceId}`, {
