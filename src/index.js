@@ -1,4 +1,6 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.js";
 import healthRouter from "./routes/health.js";
@@ -12,6 +14,9 @@ import {
   apiRateLimiter,
   comfyGenerateRateLimiter,
 } from "./middleware/rateLimitMiddleware.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -42,6 +47,16 @@ app.use("/serviceHealth", serviceHealthRouter);
 app.use("/api/auth", authenticationRouter);
 app.use("/api/comfy", comfyGenerateRateLimiter, comfyRouter);
 app.use("/api/resources", apiRateLimiter, protectedResourceRouter);
+
+// Serve static files from React build (public directory)
+const publicPath = path.join(__dirname, "..", "public");
+app.use(express.static(publicPath));
+
+// SPA fallback: send index.html for any non-API route
+// Must be last - catches all routes not handled above
+app.use((req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
 
 const PORT = process.env.PORT || 3000;
 
