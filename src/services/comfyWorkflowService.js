@@ -1,17 +1,31 @@
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import { callComfyApi, downloadOutput } from "./comfyUiService.js";
+import {
+  callComfyApi,
+  downloadOutput,
+  uploadImageToComfy,
+} from "./comfyUiService.js";
 import logger from "../utils/system/logger.js";
 
 // ---------------------------------------------------------------------------
-// Load the prompt-format workflow template once at module init.
+// Load workflow templates once at module init.
 // ---------------------------------------------------------------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const WORKFLOW_TEMPLATE = JSON.parse(
+
+// Simple workflow without reference image
+const SIMPLE_WORKFLOW_TEMPLATE = JSON.parse(
   readFileSync(
     resolve(__dirname, "..", "workflows", "simpleImageGenWorkflow.json"),
+    "utf-8"
+  )
+);
+
+// Face swap workflow with reference image
+const FACESWAP_WORKFLOW_TEMPLATE = JSON.parse(
+  readFileSync(
+    resolve(__dirname, "..", "workflows", "faceSwapWorkflow.json"),
     "utf-8"
   )
 );
@@ -20,22 +34,51 @@ const POLL_INTERVAL_MS = 2000; // check every 2 seconds
 const POLL_TIMEOUT_MS = 300000; // give up after 5 minutes
 
 // ---------------------------------------------------------------------------
-// Build a prompt payload by injecting user text into the frozen template.
+// Build a simple prompt payload (no reference image)
 // Node 8  = positive CLIPTextEncode
 // Node 11 = negative CLIPTextEncode
 // ---------------------------------------------------------------------------
-function buildPrompt({ positivePrompt, negativePrompt }) {
-  const prompt = JSON.parse(JSON.stringify(WORKFLOW_TEMPLATE));
+function buildSimplePrompt({ positivePrompt, negativePrompt }) {
+  const prompt = JSON.parse(JSON.stringify(SIMPLE_WORKFLOW_TEMPLATE));
   prompt["8"].inputs.text = positivePrompt || "";
   prompt["11"].inputs.text = negativePrompt || "";
   return prompt;
 }
 
 // ---------------------------------------------------------------------------
+// Build a face swap prompt payload (with reference image)
+// Node 8  = positive CLIPTextEncode
+// Node 11 = negative CLIPTextEncode
+// Node 56 = LoadImage (reference image)
+// ---------------------------------------------------------------------------
+function buildFaceSwapPrompt({
+  positivePrompt,
+  negativePrompt,
+  referenceImageName,
+}) {
+  const prompt = JSON.parse(JSON.stringify(FACESWAP_WORKFLOW_TEMPLATE));
+  prompt["8"].inputs.text = positivePrompt || "";
+  prompt["11"].inputs.text = negativePrompt || "";
+  prompt["56"].inputs.image = referenceImageName;
+  return prompt;
+}
+
+// ---------------------------------------------------------------------------
 // Submit the workflow to ComfyUI's queue.
 // ---------------------------------------------------------------------------
-async function submitWorkflow({ positivePrompt, negativePrompt }) {
-  const prompt = buildPrompt({ positivePrompt, negativePrompt });
+async function submitWorkflow({
+  positivePrompt,
+  negativePrompt,
+  referenceImageName,
+}) {
+  const prompt = referenceImageName
+    ? buildFaceSwapPrompt({
+        positivePrompt,
+        negativePrompt,
+        referenceImageName,
+      })
+    : buildSimplePrompt({ positivePrompt, negativePrompt });
+
   const result = await callComfyApi("prompt", "post", { prompt });
 
   if (result.errorOccurred) {
@@ -52,7 +95,7 @@ async function submitWorkflow({ positivePrompt, negativePrompt }) {
   }
 
   logger.info(
-    `Workflow submitted. prompt_id=${promptId}. [module=services/comfyWorkflow, event=workflow_submitted]`
+    `Workflow submitted. prompt_id=${promptId} hasReferenceImage=${!!referenceImageName}. [module=services/comfyWorkflow, event=workflow_submitted]`
   );
   return promptId;
 }
@@ -152,9 +195,45 @@ function extractOutputMeta(historyEntry) {
 // ---------------------------------------------------------------------------
 // Orchestrator — the single entry point called by the controller.
 // Submits → polls → extracts metadata → downloads the image buffer.
+// If referenceImageBuffer is provided, uploads it first.
 // ---------------------------------------------------------------------------
-export async function generateImage({ positivePrompt, negativePrompt }) {
-  const promptId = await submitWorkflow({ positivePrompt, negativePrompt });
+export async function generateImage({
+  positivePrompt,
+  negativePrompt,
+  referenceImageBuffer,
+  referenceImageFilename,
+}) {
+  let uploadedImageName = null;
+
+  // If reference image provided, upload it to ComfyUI first
+  if (referenceImageBuffer && referenceImageFilename) {
+    logger.info(
+      `Uploading reference image. filename=${referenceImageFilename}. [module=services/comfyWorkflow, event=upload_reference_start]`
+    );
+
+    const uploadResult = await uploadImageToComfy(
+      referenceImageBuffer,
+      referenceImageFilename
+    );
+
+    if (uploadResult.errorOccurred) {
+      throw new Error(
+        `Failed to upload reference image: ${uploadResult.errorMessage}`
+      );
+    }
+
+    uploadedImageName = uploadResult.name;
+    logger.info(
+      `Reference image uploaded. name=${uploadedImageName}. [module=services/comfyWorkflow, event=upload_reference_success]`
+    );
+  }
+
+  const promptId = await submitWorkflow({
+    positivePrompt,
+    negativePrompt,
+    referenceImageName: uploadedImageName,
+  });
+
   const historyEntry = await pollForCompletion(promptId);
   const outputMeta = extractOutputMeta(historyEntry);
 

@@ -511,6 +511,77 @@
           margin-top: 1rem;
         }
       }
+
+      /* Reference image section styles */
+      .reference-toggle {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .reference-toggle button {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+
+      .reference-toggle button.active {
+        background-color: var(--accent-color);
+        color: white;
+      }
+
+      .reference-toggle button:not(.active) {
+        background-color: var(--bg-tertiary);
+        color: var(--text-secondary);
+      }
+
+      .reference-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .reference-item {
+        cursor: pointer;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        transition: border-color 0.2s;
+      }
+
+      .reference-item.selected {
+        border-color: var(--accent-color);
+      }
+
+      .reference-item img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+      }
+
+      .reference-item p {
+        padding: 0.5rem;
+        text-align: center;
+        font-size: 0.75rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .clear-btn {
+        background: none;
+        border: none;
+        color: var(--danger-color);
+        cursor: pointer;
+        font-size: 0.875rem;
+        padding: 0;
+        margin-top: 0.5rem;
+      }
     </style>
   </head>
   <body>
@@ -732,6 +803,12 @@
           negativePrompt: "",
         });
 
+        const [referenceImageFile, setReferenceImageFile] = useState(null);
+        const [referenceImagePreview, setReferenceImagePreview] =
+          useState(null);
+        const [useExistingResource, setUseExistingResource] = useState(false);
+        const [selectedResourceId, setSelectedResourceId] = useState("");
+
         const fetchImageAsDataUrl = async (resourceId) => {
           try {
             const response = await fetch(
@@ -761,11 +838,10 @@
             });
             if (response.ok) {
               const data = await response.json();
-              setResources(data.resources);
+              setResources(data.resources || []);
 
-              // Fetch all images as data URLs
               const urls = {};
-              for (const resource of data.resources) {
+              for (const resource of data.resources || []) {
                 const dataUrl = await fetchImageAsDataUrl(resource.id);
                 if (dataUrl) {
                   urls[resource.id] = dataUrl;
@@ -786,18 +862,32 @@
 
         const handleGenerate = async (e) => {
           e.preventDefault();
+          if (!formData.positivePrompt.trim()) {
+            setError("Positive prompt is required");
+            return;
+          }
           setError("");
           setSuccess("");
           setGenerating(true);
 
           try {
+            const payload = new FormData();
+            payload.append("positivePrompt", formData.positivePrompt);
+            if (formData.negativePrompt.trim()) {
+              payload.append("negativePrompt", formData.negativePrompt);
+            }
+            if (referenceImageFile) {
+              payload.append("referenceImage", referenceImageFile);
+            } else if (selectedResourceId) {
+              payload.append("referenceImageResourceId", selectedResourceId);
+            }
+
             const response = await fetch(`${API_BASE}/api/comfy/generate`, {
               method: "POST",
               headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify(formData),
+              body: payload,
             });
 
             const data = await response.json();
@@ -808,6 +898,10 @@
 
             setSuccess("Image generated successfully!");
             setFormData({ positivePrompt: "", negativePrompt: "" });
+            setReferenceImageFile(null);
+            setReferenceImagePreview(null);
+            setSelectedResourceId("");
+            setUseExistingResource(false);
             fetchResources();
           } catch (err) {
             setError(err.message);
@@ -817,11 +911,9 @@
         };
 
         const handleDelete = async (resourceId, e) => {
-          e.stopPropagation(); // Prevent opening fullscreen when clicking delete
+          e.stopPropagation();
 
-          if (!confirm("Are you sure you want to delete this image?")) {
-            return;
-          }
+          if (!confirm("Are you sure you want to delete this image?")) return;
 
           setDeleting(resourceId);
           setError("");
@@ -832,9 +924,7 @@
               `${API_BASE}/api/resources/${resourceId}`,
               {
                 method: "DELETE",
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
               }
             );
 
@@ -845,7 +935,6 @@
 
             setSuccess("Image deleted successfully!");
 
-            // Remove from state immediately
             setResources((prev) => prev.filter((r) => r.id !== resourceId));
             setImageUrls((prev) => {
               const newUrls = { ...prev };
@@ -869,9 +958,7 @@
 
         useEffect(() => {
           const handleEscape = (e) => {
-            if (e.key === "Escape") {
-              closeFullscreen();
-            }
+            if (e.key === "Escape") closeFullscreen();
           };
 
           if (selectedImage) {
@@ -886,6 +973,32 @@
             document.body.style.overflow = "auto";
           };
         }, [selectedImage]);
+
+        const handleFileChange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            setReferenceImageFile(file);
+            setUseExistingResource(false);
+            setSelectedResourceId("");
+            const reader = new FileReader();
+            reader.onloadend = () => setReferenceImagePreview(reader.result);
+            reader.readAsDataURL(file);
+          }
+        };
+
+        const handleResourceSelect = (resourceId) => {
+          setSelectedResourceId(resourceId);
+          setUseExistingResource(true);
+          setReferenceImageFile(null);
+          setReferenceImagePreview(null);
+        };
+
+        const clearReference = () => {
+          setReferenceImageFile(null);
+          setReferenceImagePreview(null);
+          setSelectedResourceId("");
+          setUseExistingResource(false);
+        };
 
         return (
           <>
@@ -908,6 +1021,7 @@
                     }
                     placeholder="Describe what you want to see..."
                     required
+                    disabled={generating}
                   />
                 </div>
 
@@ -922,7 +1036,160 @@
                       })
                     }
                     placeholder="Describe what you don't want to see..."
+                    disabled={generating}
                   />
+                </div>
+
+                {/* Reference Image Section */}
+                <div
+                  className="form-group"
+                  style={{
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    padding: "1rem",
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: "1.125rem",
+                      marginBottom: "1rem",
+                      display: "block",
+                    }}
+                  >
+                    Reference Image (Optional)
+                  </label>
+
+                  <div className="reference-toggle">
+                    <button
+                      type="button"
+                      className={!useExistingResource ? "active" : ""}
+                      onClick={() => {
+                        setUseExistingResource(false);
+                        clearReference();
+                      }}
+                      disabled={generating}
+                    >
+                      Upload New
+                    </button>
+                    <button
+                      type="button"
+                      className={useExistingResource ? "active" : ""}
+                      onClick={() => {
+                        setUseExistingResource(true);
+                        clearReference();
+                      }}
+                      disabled={generating}
+                    >
+                      Use Existing
+                    </button>
+                  </div>
+
+                  {!useExistingResource && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handleFileChange}
+                        disabled={generating}
+                      />
+                      {referenceImagePreview && (
+                        <div style={{ marginTop: "1rem" }}>
+                          <img
+                            src={referenceImagePreview}
+                            alt="Reference preview"
+                            style={{
+                              maxWidth: "240px",
+                              borderRadius: "6px",
+                              border: "1px solid var(--border-color)",
+                              marginBottom: "0.5rem",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="clear-btn"
+                            onClick={clearReference}
+                            disabled={generating}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {useExistingResource && (
+                    <div style={{ marginTop: "1rem" }}>
+                      {resources.length === 0 ? (
+                        <p
+                          style={{
+                            color: "var(--text-secondary)",
+                            margin: "1rem 0",
+                          }}
+                        >
+                          No images available yet. Generate some first!
+                        </p>
+                      ) : (
+                        <>
+                          <div className="reference-grid">
+                            {resources.map((resource) => (
+                              <div
+                                key={resource.id}
+                                className={`reference-item ${selectedResourceId === resource.id ? "selected" : ""}`}
+                                onClick={() =>
+                                  handleResourceSelect(resource.id)
+                                }
+                                style={{
+                                  opacity: imageUrls[resource.id] ? 1 : 0.5,
+                                }}
+                              >
+                                {imageUrls[resource.id] ? (
+                                  <img
+                                    src={imageUrls[resource.id]}
+                                    alt={resource.filename}
+                                    style={{
+                                      width: "100%",
+                                      height: "100px",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: "100%",
+                                      height: "100px",
+                                      backgroundColor: "var(--bg-tertiary)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <span
+                                      className="loading-spinner"
+                                      style={{ width: "24px", height: "24px" }}
+                                    ></span>
+                                  </div>
+                                )}
+                                <p title={resource.filename}>
+                                  {resource.filename}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {selectedResourceId && (
+                            <button
+                              type="button"
+                              className="clear-btn"
+                              onClick={clearReference}
+                              disabled={generating}
+                            >
+                              Clear Selection
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -1023,9 +1290,7 @@
 
       function ImageModal({ resource, imageUrl, onClose }) {
         const handleOverlayClick = (e) => {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
+          if (e.target === e.currentTarget) onClose();
         };
 
         const formatDate = (dateString) => {

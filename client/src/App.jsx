@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from './hooks/useAuth';
-import { api } from './services/api';
-import { AuthModal } from './components/AuthModal';
-import { GenerateForm } from './components/GenerateForm';
-import { Gallery } from './components/Gallery';
+import { useState, useEffect } from "react";
+import { useAuth } from "./hooks/useAuth";
+import { api } from "./services/api";
+import { AuthModal } from "./components/AuthModal";
+import { GenerateForm } from "./components/GenerateForm";
+import { Gallery } from "./components/Gallery";
 
 function App() {
   const { isAuthenticated, login, register, logout } = useAuth();
@@ -25,15 +25,16 @@ function App() {
       const data = await api.listResources();
       setResources(data);
     } catch (err) {
-      console.error('Failed to load resources:', err);
+      console.error("Failed to load resources:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerate = async (positivePrompt, negativePrompt) => {
-    await api.generateImage(positivePrompt, negativePrompt);
-    await loadResources(); // Refresh gallery
+  const handleGenerate = async () => {
+    // We moved generation logic into the component
+    // Just refresh gallery when child calls onGenerateSuccess
+    await loadResources();
   };
 
   const handleDelete = async (resourceId) => {
@@ -46,14 +47,17 @@ function App() {
       {/* Header */}
       <header style={styles.header}>
         <h1 style={styles.logo}>Image Generator</h1>
-        
+
         <div style={styles.authButtons}>
           {isAuthenticated ? (
             <button onClick={logout} style={styles.button}>
               Logout
             </button>
           ) : (
-            <button onClick={() => setShowAuthModal(true)} style={styles.button}>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              style={styles.button}
+            >
               Login / Register
             </button>
           )}
@@ -64,7 +68,7 @@ function App() {
       <main style={styles.main}>
         {isAuthenticated ? (
           <>
-            <GenerateForm onGenerate={handleGenerate} />
+            <GenerateForm onGenerateSuccess={loadResources} />
             {loading ? (
               <p style={styles.loading}>Loading gallery...</p>
             ) : (
@@ -75,7 +79,10 @@ function App() {
           <div style={styles.welcome}>
             <h2>Welcome!</h2>
             <p>Please login or register to start generating images.</p>
-            <button onClick={() => setShowAuthModal(true)} style={styles.welcomeButton}>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              style={styles.welcomeButton}
+            >
               Get Started
             </button>
           </div>
@@ -96,63 +103,63 @@ function App() {
 
 const styles = {
   app: {
-    minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
+    minHeight: "100vh",
+    backgroundColor: "#f5f5f5",
   },
   header: {
-    backgroundColor: 'white',
-    padding: '1rem 2rem',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: "white",
+    padding: "1rem 2rem",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   logo: {
     margin: 0,
-    fontSize: '1.5rem',
-    fontWeight: '600',
+    fontSize: "1.5rem",
+    fontWeight: "600",
   },
   authButtons: {
-    display: 'flex',
-    gap: '1rem',
+    display: "flex",
+    gap: "1rem",
   },
   button: {
-    padding: '0.5rem 1.5rem',
-    backgroundColor: '#007bff',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '1rem',
-    cursor: 'pointer',
-    fontWeight: '500',
+    padding: "0.5rem 1.5rem",
+    backgroundColor: "#007bff",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "1rem",
+    cursor: "pointer",
+    fontWeight: "500",
   },
   main: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '2rem',
+    maxWidth: "1200px",
+    margin: "0 auto",
+    padding: "2rem",
   },
   welcome: {
-    backgroundColor: 'white',
-    padding: '4rem 2rem',
-    borderRadius: '8px',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    textAlign: 'center',
+    backgroundColor: "white",
+    padding: "4rem 2rem",
+    borderRadius: "8px",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    textAlign: "center",
   },
   welcomeButton: {
-    marginTop: '2rem',
-    padding: '0.75rem 2rem',
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '1.125rem',
-    cursor: 'pointer',
-    fontWeight: '500',
+    marginTop: "2rem",
+    padding: "0.75rem 2rem",
+    backgroundColor: "#28a745",
+    color: "white",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "1.125rem",
+    cursor: "pointer",
+    fontWeight: "500",
   },
   loading: {
-    textAlign: 'center',
-    color: '#666',
-    padding: '2rem',
+    textAlign: "center",
+    color: "#666",
+    padding: "2rem",
   },
 };
 

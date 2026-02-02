@@ -1,0 +1,116 @@
+{
+    "43": {
+        "class_type": "CheckpointLoaderSimple",
+        "inputs": {
+            "ckpt_name": "realismByStableYogi_sd15V9.safetensors"
+        }
+    },
+    "8": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+            "clip": [
+                "43",
+                1
+            ],
+            "text": ""
+        }
+    },
+    "11": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+            "clip": [
+                "43",
+                1
+            ],
+            "text": ""
+        }
+    },
+    "52": {
+        "class_type": "EmptyLatentImage",
+        "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+        }
+    },
+    "10": {
+        "class_type": "KSampler",
+        "inputs": {
+            "model": [
+                "43",
+                0
+            ],
+            "positive": [
+                "8",
+                0
+            ],
+            "negative": [
+                "11",
+                0
+            ],
+            "latent_image": [
+                "52",
+                0
+            ],
+            "seed": 556585564792618,
+            "steps": 20,
+            "cfg": 8,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 1
+        }
+    },
+    "9": {
+        "class_type": "VAEDecode",
+        "inputs": {
+            "samples": [
+                "10",
+                0
+            ],
+            "vae": [
+                "43",
+                2
+            ]
+        }
+    },
+    "18": {
+        "class_type": "SaveImage",
+        "inputs": {
+            "filename_prefix": "ComfyUI",
+            "images": [
+                "53",
+                0
+            ]
+        }
+    },
+    "53": {
+        "class_type": "ReActorFaceSwap",
+        "inputs": {
+            "input_image": [
+                "9",
+                0
+            ],
+            "source_image": [
+                "56",
+                0
+            ],
+            "enabled": true,
+            "swap_model": "inswapper_128.onnx",
+            "facedetection": "retinaface_resnet50",
+            "face_restore_model": "GFPGANv1.4.pth",
+            "face_restore_visibility": 0.85,
+            "codeformer_weight": 0.9,
+            "detect_gender_input": "female",
+            "detect_gender_source": "female",
+            "input_faces_index": "0",
+            "source_faces_index": "0",
+            "console_log_level": 1
+        }
+    },
+    "56": {
+        "class_type": "LoadImage",
+        "inputs": {
+            "image": ""
+        }
+    }
+}
