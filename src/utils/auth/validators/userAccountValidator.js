@@ -1,7 +1,4 @@
 import { body, validationResult } from "express-validator";
-import { DEFINED_APPLICATION_ROLES } from "../../../config/rolesAndPermissionsConfig.js";
-
-const validApplicationRolesArray = Object.values(DEFINED_APPLICATION_ROLES);
 
 export const registrationRequestValidationRules = [
   body("emailAddress")
@@ -11,11 +8,8 @@ export const registrationRequestValidationRules = [
   body("plainTextPassword")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters"),
-  body("assignedApplicationRole")
-    .isIn(validApplicationRolesArray)
-    .withMessage(
-      `Role must be one of: ${validApplicationRolesArray.join(", ")}`
-    ),
+  // Note: assignedApplicationRole is intentionally not validated here
+  // All new registrations are assigned 'viewer' role server-side for security
 ];
 
 export const loginRequestValidationRules = [

@@ -35,7 +35,8 @@ export async function registerNewUserAccount(emailAddress, plainTextPassword) {
 
   const signedTokenForNewAccount = generateSignedTokenForUserAccount(
     newlyCreatedUserAccount.id,
-    newlyCreatedUserAccount.assigned_role
+    newlyCreatedUserAccount.assigned_role,
+    newlyCreatedUserAccount.email_address
   );
 
   return {
@@ -75,7 +76,8 @@ export async function authenticateExistingUserAccount(
 
   const signedTokenForExistingAccount = generateSignedTokenForUserAccount(
     matchingUserAccount.id,
-    matchingUserAccount.assigned_role
+    matchingUserAccount.assigned_role,
+    matchingUserAccount.email_address
   );
 
   return {

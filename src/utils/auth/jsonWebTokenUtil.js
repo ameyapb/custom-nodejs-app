@@ -5,11 +5,13 @@ const JWT_EXPIRATION_DURATION = "7d";
 
 export function generateSignedTokenForUserAccount(
   userAccountId,
-  assignedApplicationRole
+  assignedApplicationRole,
+  emailAddress = null
 ) {
   const tokenPayloadData = {
     userAccountId,
     assignedApplicationRole,
+    email: emailAddress,
   };
 
   const signedJsonWebToken = jwt.sign(tokenPayloadData, config.jwtSecret, {

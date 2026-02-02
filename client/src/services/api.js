@@ -12,7 +12,13 @@ export const authAPI = {
       }),
     }).then(async (r) => {
       const data = await r.json();
-      if (!r.ok) throw new Error(data.message || "Registration failed");
+      if (!r.ok) {
+        // Handle validation errors array from backend
+        if (data.errors && Array.isArray(data.errors)) {
+          throw new Error(data.errors.join(", "));
+        }
+        throw new Error(data.message || "Registration failed");
+      }
       return data;
     }),
 
