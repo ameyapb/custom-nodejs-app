@@ -2,6 +2,8 @@ import {
   insertNewResource,
   findResourceById,
   findResourcesByUserId,
+  findReferenceImagesByUserId,
+  findGeneratedImagesByUserId,
   deleteResourceById,
   updateResourceFile,
 } from "../db/queries/resourceQueries.js";
@@ -16,7 +18,8 @@ export async function createImageResource(
   userId,
   imageBuffer,
   originalFilename,
-  mimeType
+  mimeType,
+  imageType = "uploaded"
 ) {
   try {
     const { filename, filePath, fileSizeBytes } = await saveImageFile(
@@ -29,7 +32,8 @@ export async function createImageResource(
       filename,
       filePath,
       fileSizeBytes,
-      mimeType
+      mimeType,
+      imageType
     );
 
     return {
@@ -147,6 +151,55 @@ export async function listUserResources(userId) {
       errorOccurred: true,
       errorStatusCode: 500,
       errorMessage: "Failed to list resources",
+    };
+  }
+}
+
+export async function listImageResources(userId, options = {}) {
+  try {
+    if (options.referencesOnly) {
+      // Use the dedicated function for reference images
+      const resources = await findReferenceImagesByUserId(userId);
+      return {
+        errorOccurred: false,
+        resources,
+      };
+    }
+
+    // Fallback for any other case
+    const { runQuery } = await import("../db/queryRunner.js");
+    let query = "SELECT * FROM resources WHERE user_id = $1";
+    const params = [userId];
+    query += " ORDER BY created_at DESC";
+    const result = await runQuery(query, params);
+
+    return { errorOccurred: false, resources: result.rows };
+  } catch (err) {
+    logger.error(
+      `Failed to list image resources. userId=${userId}. [module=services/resource, event=list_failed]`,
+      { message: err.message }
+    );
+    return {
+      errorOccurred: true,
+      errorMessage: "Failed to retrieve resources",
+      errorStatusCode: 500,
+    };
+  }
+}
+
+export async function listGeneratedImages(userId) {
+  try {
+    const resources = await findGeneratedImagesByUserId(userId);
+    return {
+      errorOccurred: false,
+      resources,
+    };
+  } catch (err) {
+    logger.error(`Failed to list generated images for user ${userId}`, err);
+    return {
+      errorOccurred: true,
+      errorStatusCode: 500,
+      errorMessage: "Failed to list generated images",
     };
   }
 }

@@ -4,6 +4,8 @@ import {
   deleteImageResource,
   updateImageResource,
   listUserResources,
+  listImageResources,
+  listGeneratedImages,
 } from "../services/resourceService.js";
 import logger from "../utils/system/logger.js";
 
@@ -17,6 +19,7 @@ function mapResourceForResponse(dbRow) {
     filename: dbRow.filename,
     fileSizeBytes: dbRow.file_size_bytes,
     mimeType: dbRow.mime_type,
+    imageType: dbRow.image_type,
     createdAt: dbRow.created_at,
     updatedAt: dbRow.updated_at,
   };
@@ -27,6 +30,7 @@ export async function handleCreateResourceRequest(req, res) {
   try {
     const userId = req.authenticatedUserAccountId;
     const file = req.file;
+    const { imageType = "uploaded" } = req.body;
 
     if (!file) {
       return res.status(400).json({ message: "No image file provided" });
@@ -36,7 +40,8 @@ export async function handleCreateResourceRequest(req, res) {
       userId,
       file.buffer,
       file.originalname,
-      file.mimetype
+      file.mimetype,
+      imageType
     );
 
     if (result.errorOccurred) {
@@ -193,6 +198,56 @@ export async function handleDeleteResourceRequest(req, res) {
     logger.error(
       "Resource deletion failed unexpectedly. [module=controllers/resource, event=delete_error]",
       err
+    );
+    return res.status(500).json({ message: "An unexpected error occurred" });
+  }
+}
+
+export async function handleListReferenceImagesRequest(req, res) {
+  try {
+    const userId = req.authenticatedUserAccountId;
+    const result = await listImageResources(userId, { referencesOnly: true });
+
+    if (result.errorOccurred) {
+      return res
+        .status(result.errorStatusCode)
+        .json({ message: result.errorMessage });
+    }
+
+    const resources = result.resources.map(mapResourceForResponse);
+    logger.info(
+      `Reference images listed. userId=${userId} count=${resources.length}. [module=controllers/resource, event=list_references_success]`
+    );
+    return res.status(200).json({ resources });
+  } catch (err) {
+    logger.error(
+      "Failed to list reference images. [module=controllers/resource, event=list_references_error]",
+      { message: err.message }
+    );
+    return res.status(500).json({ message: "An unexpected error occurred" });
+  }
+}
+
+export async function handleListGeneratedImagesRequest(req, res) {
+  try {
+    const userId = req.authenticatedUserAccountId;
+    const result = await listGeneratedImages(userId);
+
+    if (result.errorOccurred) {
+      return res
+        .status(result.errorStatusCode)
+        .json({ message: result.errorMessage });
+    }
+
+    const resources = result.resources.map(mapResourceForResponse);
+    logger.info(
+      `Generated images listed. userId=${userId} count=${resources.length}. [module=controllers/resource, event=list_generated_success]`
+    );
+    return res.status(200).json({ resources });
+  } catch (err) {
+    logger.error(
+      "Failed to list generated images. [module=controllers/resource, event=list_generated_error]",
+      { message: err.message }
     );
     return res.status(500).json({ message: "An unexpected error occurred" });
   }

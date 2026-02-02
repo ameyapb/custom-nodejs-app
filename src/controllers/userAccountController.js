@@ -13,13 +13,14 @@ export async function handleUserRegistrationRequest(req, res) {
       .json({ validationErrors: extractedValidationErrors });
   }
 
-  const { emailAddress, plainTextPassword, assignedApplicationRole } = req.body;
+  // Note: assignedApplicationRole is intentionally not extracted from request body
+  // All new registrations are assigned 'viewer' role by the service
+  const { emailAddress, plainTextPassword } = req.body;
 
   try {
     const registrationResult = await registerNewUserAccount(
       emailAddress,
-      plainTextPassword,
-      assignedApplicationRole
+      plainTextPassword
     );
 
     if (registrationResult.errorOccurred) {

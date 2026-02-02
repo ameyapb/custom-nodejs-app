@@ -8,6 +8,7 @@ import serviceHealthRouter from "./routes/serviceHealth.js";
 import authenticationRouter from "./routes/authenticationRoutes.js";
 import protectedResourceRouter from "./routes/resourceRoutes.js";
 import comfyRouter from "./routes/comfyRoutes.js";
+import adminRouter from "./routes/adminRoutes.js";
 import logger from "./utils/system/logger.js";
 import { runMigrations } from "./db/migrations.js";
 import {
@@ -45,6 +46,7 @@ app.use("/serviceHealth", serviceHealthRouter);
 
 // API routes
 app.use("/api/auth", authenticationRouter);
+app.use("/api/admin", apiRateLimiter, adminRouter);
 app.use("/api/comfy", comfyGenerateRateLimiter, comfyRouter);
 app.use("/api/resources", apiRateLimiter, protectedResourceRouter);
 

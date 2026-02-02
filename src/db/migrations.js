@@ -23,9 +23,11 @@ export async function runMigrations() {
       )
     `);
 
-    // Get all migration files
+    // Get all migration files (SQL and JS)
     const files = await fs.readdir(MIGRATIONS_DIR);
-    const migrationFiles = files.filter((f) => f.endsWith(".sql")).sort();
+    const migrationFiles = files
+      .filter((f) => f.endsWith(".sql") || f.endsWith(".js"))
+      .sort();
 
     for (const file of migrationFiles) {
       // Check if migration already ran
@@ -42,10 +44,19 @@ export async function runMigrations() {
       }
 
       const filePath = path.join(MIGRATIONS_DIR, file);
-      const sql = await fs.readFile(filePath, "utf-8");
 
       try {
-        await pool.query(`SET search_path TO ${config.dbSchema}; ${sql}`);
+        if (file.endsWith(".sql")) {
+          // SQL migration
+          const sql = await fs.readFile(filePath, "utf-8");
+          await pool.query(`SET search_path TO ${config.dbSchema}; ${sql}`);
+        } else if (file.endsWith(".js")) {
+          // JavaScript migration
+          const migration = await import(filePath);
+          if (typeof migration.up === "function") {
+            await migration.up(pool, config);
+          }
+        }
 
         // Record migration as executed
         await pool.query(

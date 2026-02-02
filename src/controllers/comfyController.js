@@ -11,6 +11,7 @@ function mapResourceForResponse(dbRow) {
     filename: dbRow.filename,
     fileSizeBytes: dbRow.file_size_bytes,
     mimeType: dbRow.mime_type,
+    imageType: dbRow.image_type,
     createdAt: dbRow.created_at,
     updatedAt: dbRow.updated_at,
   };
@@ -76,12 +77,13 @@ export async function handleGenerateFromPrompt(req, res) {
       referenceImageFilename,
     });
 
-    // Persist using the same resource pipeline as uploaded images
+    // Persist using the same resource pipeline as uploaded images, but mark as 'generated'
     const result = await createImageResource(
       userId,
       buffer,
       filename,
-      contentType
+      contentType,
+      "generated"
     );
 
     if (result.errorOccurred) {

@@ -8,6 +8,8 @@ import {
 import { DEFINED_RESOURCE_ACTIONS } from "../config/rolesAndPermissionsConfig.js";
 import {
   handleListResourcesRequest,
+  handleListReferenceImagesRequest,
+  handleListGeneratedImagesRequest,
   handleCreateResourceRequest,
   handleReadResourceRequest,
   handleUpdateResourceRequest,
@@ -15,6 +17,53 @@ import {
 } from "../controllers/resourceController.js";
 
 const protectedResourceRouter = express.Router();
+
+/**
+ * @swagger
+ * /api/resources/generated:
+ *   get:
+ *     tags:
+ *       - Resources
+ *     summary: List only generated images (ComfyUI outputs)
+ */
+protectedResourceRouter.get(
+  "/generated",
+  authenticateRequestViaJsonWebToken,
+  requireRolePermissionForAction(DEFINED_RESOURCE_ACTIONS.ACTION_READ),
+  handleListGeneratedImagesRequest
+);
+
+/**
+ * @swagger
+ * /api/resources/references:
+ *   get:
+ *     tags:
+ *       - Resources
+ *     summary: List only reference images (uploaded by user)
+ *     description: Returns only images uploaded directly by the user, excluding generated images
+ *     responses:
+ *       200:
+ *         description: List of reference images
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 resources:
+ *                   type: array
+ *                   items:
+ *                     $ref: "#/components/schemas/Resource"
+ *       401:
+ *         description: Unauthorized or missing token
+ *       500:
+ *         description: Server error
+ */
+protectedResourceRouter.get(
+  "/references",
+  authenticateRequestViaJsonWebToken,
+  requireRolePermissionForAction(DEFINED_RESOURCE_ACTIONS.ACTION_READ),
+  handleListReferenceImagesRequest
+);
 
 /**
  * @swagger

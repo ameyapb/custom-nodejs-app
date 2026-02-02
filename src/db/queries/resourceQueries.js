@@ -5,12 +5,13 @@ export async function insertNewResource(
   filename,
   filePath,
   fileSizeBytes,
-  mimeType
+  mimeType,
+  imageType = "uploaded"
 ) {
   const queryText = `
-    INSERT INTO resources (user_id, filename, file_path, file_size_bytes, mime_type)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING id, user_id, filename, file_path, file_size_bytes, mime_type, created_at, updated_at
+    INSERT INTO resources (user_id, filename, file_path, file_size_bytes, mime_type, image_type)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, user_id, filename, file_path, file_size_bytes, mime_type, image_type, created_at, updated_at
   `;
 
   const queryResult = await runQuery(queryText, [
@@ -19,13 +20,14 @@ export async function insertNewResource(
     filePath,
     fileSizeBytes,
     mimeType,
+    imageType,
   ]);
   return queryResult.rows[0];
 }
 
 export async function findResourceById(resourceId) {
   const queryText = `
-    SELECT id, user_id, filename, file_path, file_size_bytes, mime_type, created_at, updated_at
+    SELECT id, user_id, filename, file_path, file_size_bytes, mime_type, image_type, created_at, updated_at
     FROM resources
     WHERE id = $1
   `;
@@ -36,9 +38,33 @@ export async function findResourceById(resourceId) {
 
 export async function findResourcesByUserId(userId) {
   const queryText = `
-    SELECT id, user_id, filename, file_path, file_size_bytes, mime_type, created_at, updated_at
+    SELECT id, user_id, filename, file_path, file_size_bytes, mime_type, image_type, created_at, updated_at
     FROM resources
     WHERE user_id = $1
+    ORDER BY created_at DESC
+  `;
+
+  const queryResult = await runQuery(queryText, [userId]);
+  return queryResult.rows;
+}
+
+export async function findGeneratedImagesByUserId(userId) {
+  const queryText = `
+    SELECT id, user_id, filename, file_path, file_size_bytes, mime_type, image_type, created_at, updated_at
+    FROM resources
+    WHERE user_id = $1 AND image_type = 'generated'
+    ORDER BY created_at DESC
+  `;
+
+  const queryResult = await runQuery(queryText, [userId]);
+  return queryResult.rows;
+}
+
+export async function findReferenceImagesByUserId(userId) {
+  const queryText = `
+    SELECT id, user_id, filename, file_path, file_size_bytes, mime_type, image_type, created_at, updated_at
+    FROM resources
+    WHERE user_id = $1 AND image_type = 'uploaded'
     ORDER BY created_at DESC
   `;
 
@@ -72,7 +98,7 @@ export async function updateResourceFile(
         mime_type = $5,
         updated_at = NOW()
     WHERE id = $1
-    RETURNING id, user_id, filename, file_path, file_size_bytes, mime_type, created_at, updated_at
+    RETURNING id, user_id, filename, file_path, file_size_bytes, mime_type, image_type, created_at, updated_at
   `;
   const queryResult = await runQuery(queryText, [
     resourceId,

@@ -21,7 +21,7 @@ const authenticationRouter = express.Router();
  *     tags:
  *       - Authentication
  *     summary: Register a new user account
- *     description: Creates a new user account and returns a JWT token. Rate limited to 5 registrations per IP per 15 minutes.
+ *     description: Creates a new user account with 'viewer' role and returns a JWT token. Role elevation must be done by an admin. Rate limited to 5 registrations per IP per 15 minutes.
  *     security: []
  *     requestBody:
  *       required: true
@@ -32,7 +32,6 @@ const authenticationRouter = express.Router();
  *             required:
  *               - emailAddress
  *               - plainTextPassword
- *               - assignedApplicationRole
  *             properties:
  *               emailAddress:
  *                 type: string
@@ -40,9 +39,6 @@ const authenticationRouter = express.Router();
  *               plainTextPassword:
  *                 type: string
  *                 minLength: 8
- *               assignedApplicationRole:
- *                 type: string
- *                 enum: [admin, editor, viewer]
  *     responses:
  *       201:
  *         description: User registered successfully

@@ -7,12 +7,13 @@ import {
   verifyPlainTextPasswordAgainstHash,
 } from "../utils/auth/passwordHashingUtil.js";
 import { generateSignedTokenForUserAccount } from "../utils/auth/jsonWebTokenUtil.js";
+import { DEFINED_APPLICATION_ROLES } from "../config/rolesAndPermissionsConfig.js";
 
-export async function registerNewUserAccount(
-  emailAddress,
-  plainTextPassword,
-  assignedApplicationRole
-) {
+export async function registerNewUserAccount(emailAddress, plainTextPassword) {
+  // Always assign 'viewer' role to new registrations
+  // Role elevation must be done by an admin through a separate endpoint
+  const assignedApplicationRole = DEFINED_APPLICATION_ROLES.ROLE_VIEWER;
+
   const existingUserAccountWithSameEmail =
     await findUserAccountByEmailAddress(emailAddress);
   if (existingUserAccountWithSameEmail) {
