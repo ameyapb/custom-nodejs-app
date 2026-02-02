@@ -158,3 +158,4 @@ Thumbs.db
 # Storage
 storage/
 uploads/
+cloudflared.deb

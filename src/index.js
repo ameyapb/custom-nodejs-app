@@ -48,12 +48,14 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
   try {
     await runMigrations();
-    app.listen(PORT, () => {
+
+    app.listen(PORT, "0.0.0.0", () => {
       logger.info(
-        `Server started. [module=index, event=server_start, url=http://localhost:${PORT}, port=${PORT}]`
+        `Server started → listening on all interfaces! http://0.0.0.0:${PORT}`
       );
+      logger.info(`You can reach the app locally: http://localhost:${PORT}`);
       logger.info(
-        `Swagger docs available at http://localhost:${PORT}/api-docs. [module=index, event=swagger_ready]`
+        `Swagger docs available at: http://localhost:${PORT}/api-docs`
       );
     });
   } catch (err) {
