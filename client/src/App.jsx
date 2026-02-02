@@ -1,166 +1,124 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "./hooks/useAuth";
-import { api } from "./services/api";
-import { AuthModal } from "./components/AuthModal";
-import { GenerateForm } from "./components/GenerateForm";
-import { Gallery } from "./components/Gallery";
+import ImageGenerationForm from "./components/ImageGenerationForm";
+import "./App.css";
 
 function App() {
-  const { isAuthenticated, login, register, logout } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Login form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  // API base URL - adjust if different
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  // Check if user is already logged in on mount
   useEffect(() => {
-    if (isAuthenticated) {
-      loadResources();
-    } else {
-      setResources([]);
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      setAuthToken(token);
+      setIsLoggedIn(true);
     }
-  }, [isAuthenticated]);
+  }, []);
 
-  const loadResources = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError("");
+
     try {
-      setLoading(true);
-      const data = await api.listResources();
-      setResources(data);
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          emailAddress: email,
+          plainTextPassword: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Save token and update state
+      localStorage.setItem("authToken", data.signedAuthenticationToken);
+      setAuthToken(data.signedAuthenticationToken);
+      setIsLoggedIn(true);
+
+      // Clear form
+      setEmail("");
+      setPassword("");
     } catch (err) {
-      console.error("Failed to load resources:", err);
-    } finally {
-      setLoading(false);
+      setLoginError(err.message);
     }
   };
 
-  const handleGenerate = async () => {
-    // We moved generation logic into the component
-    // Just refresh gallery when child calls onGenerateSuccess
-    await loadResources();
-  };
-
-  const handleDelete = async (resourceId) => {
-    await api.deleteResource(resourceId);
-    await loadResources(); // Refresh gallery
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    setAuthToken(null);
+    setIsLoggedIn(false);
   };
 
   return (
-    <div style={styles.app}>
-      {/* Header */}
-      <header style={styles.header}>
-        <h1 style={styles.logo}>Image Generator</h1>
-
-        <div style={styles.authButtons}>
-          {isAuthenticated ? (
-            <button onClick={logout} style={styles.button}>
-              Logout
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              style={styles.button}
-            >
-              Login / Register
-            </button>
-          )}
-        </div>
+    <div className="app">
+      <header className="app-header">
+        <h1>🎨 AI Image Generation</h1>
+        {isLoggedIn && (
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
+          </button>
+        )}
       </header>
 
-      {/* Main Content */}
-      <main style={styles.main}>
-        {isAuthenticated ? (
-          <>
-            <GenerateForm onGenerateSuccess={loadResources} />
-            {loading ? (
-              <p style={styles.loading}>Loading gallery...</p>
-            ) : (
-              <Gallery resources={resources} onDelete={handleDelete} />
-            )}
-          </>
+      <main className="app-main">
+        {isLoggedIn ? (
+          <ImageGenerationForm apiBaseUrl={apiBaseUrl} authToken={authToken} />
         ) : (
-          <div style={styles.welcome}>
-            <h2>Welcome!</h2>
-            <p>Please login or register to start generating images.</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              style={styles.welcomeButton}
-            >
-              Get Started
-            </button>
+          <div className="login-container">
+            <h2>Login to Generate Images</h2>
+            <form onSubmit={handleLogin} className="login-form">
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              {loginError && (
+                <div className="alert alert-error">{loginError}</div>
+              )}
+
+              <button type="submit" className="login-btn">
+                Login
+              </button>
+            </form>
           </div>
         )}
       </main>
-
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onLogin={login}
-          onRegister={register}
-        />
-      )}
     </div>
   );
 }
-
-const styles = {
-  app: {
-    minHeight: "100vh",
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    backgroundColor: "white",
-    padding: "1rem 2rem",
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  logo: {
-    margin: 0,
-    fontSize: "1.5rem",
-    fontWeight: "600",
-  },
-  authButtons: {
-    display: "flex",
-    gap: "1rem",
-  },
-  button: {
-    padding: "0.5rem 1.5rem",
-    backgroundColor: "#007bff",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    fontSize: "1rem",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
-  main: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "2rem",
-  },
-  welcome: {
-    backgroundColor: "white",
-    padding: "4rem 2rem",
-    borderRadius: "8px",
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-    textAlign: "center",
-  },
-  welcomeButton: {
-    marginTop: "2rem",
-    padding: "0.75rem 2rem",
-    backgroundColor: "#28a745",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    fontSize: "1.125rem",
-    cursor: "pointer",
-    fontWeight: "500",
-  },
-  loading: {
-    textAlign: "center",
-    color: "#666",
-    padding: "2rem",
-  },
-};
 
 export default App;

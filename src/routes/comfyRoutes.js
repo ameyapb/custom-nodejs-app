@@ -23,16 +23,25 @@ const comfyRouter = express.Router();
  *   post:
  *     tags:
  *       - Comfy
- *     summary: Generate an image from a text prompt with optional reference image
+ *     summary: Generate an image using ComfyUI
  *     description: |
- *       Generates an image using a positive prompt (required) and an optional negative prompt.
+ *       Generate an AI image from a text prompt using ComfyUI. Supports both simple text-to-image
+ *       and face swap workflows.
  *
- *       **Reference Image Options:**
- *       - Upload a new image file as `referenceImage` (multipart/form-data)
- *       - OR provide `referenceImageResourceId` (JSON) to use an existing resource
+ *       ## Workflows
+ *       - **Simple Generation**: Provide only prompts (no reference image)
+ *       - **Face Swap**: Include a reference image to swap faces in the generated image
  *
- *       If a reference image is provided, the face swap workflow is used.
- *       Otherwise, the simple text-to-image workflow is used.
+ *       ## Reference Image Options
+ *       You can provide a reference image in two ways:
+ *       1. **Upload New**: Include `referenceImage` file in multipart/form-data
+ *       2. **Use Existing**: Provide `referenceImageResourceId` of a previously uploaded resource
+ *
+ *       ## Rate Limiting
+ *       Limited to 5 generations per 10 minutes per IP address.
+ *
+ *       ## Authentication
+ *       Requires JWT bearer token with CREATE permission (admin or editor role).
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -41,43 +50,49 @@ const comfyRouter = express.Router();
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - positivePrompt
  *             properties:
  *               positivePrompt:
  *                 type: string
- *                 description: The prompt to generate the image from (required, non-empty)
- *                 example: "A futuristic cityscape at sunset"
+ *                 description: What you want to see in the generated image
+ *                 example: "A majestic mountain landscape at sunset, photorealistic"
+ *                 minLength: 1
  *               negativePrompt:
  *                 type: string
- *                 description: Optional prompt describing what to avoid in the image
- *                 example: "No people, no cars"
+ *                 description: What you want to avoid in the generated image
+ *                 example: "blurry, low quality, distorted, ugly"
  *               referenceImage:
  *                 type: string
  *                 format: binary
- *                 description: Optional reference image file for face swapping (JPEG, PNG, GIF, WebP). Max 10MB
+ *                 description: |
+ *                   Reference image for face swapping (optional).
+ *                   Accepted formats: JPEG, PNG, GIF, WebP. Max size: 10MB
  *               referenceImageResourceId:
  *                 type: string
  *                 format: uuid
- *                 description: Optional ID of existing resource to use as reference image (alternative to uploading)
- *             required:
- *               - positivePrompt
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               positivePrompt:
- *                 type: string
- *                 description: The prompt to generate the image from (required, non-empty)
- *                 example: "A futuristic cityscape at sunset"
- *               negativePrompt:
- *                 type: string
- *                 description: Optional prompt describing what to avoid in the image
- *                 example: "No people, no cars"
- *               referenceImageResourceId:
- *                 type: string
- *                 format: uuid
- *                 description: Optional ID of existing resource to use as reference image
- *             required:
- *               - positivePrompt
+ *                 description: |
+ *                   ID of an existing resource to use as reference image (optional).
+ *                   Alternative to uploading a new file. Cannot be used with referenceImage.
+ *                 example: "550e8400-e29b-41d4-a716-446655440000"
+ *           examples:
+ *             simpleGeneration:
+ *               summary: Simple text-to-image
+ *               value:
+ *                 positivePrompt: "A serene lake with mountains in the background"
+ *                 negativePrompt: "people, buildings, cars"
+ *             faceSwapWithUpload:
+ *               summary: Face swap with new upload
+ *               value:
+ *                 positivePrompt: "Professional headshot, business attire"
+ *                 negativePrompt: "blurry, low quality"
+ *                 referenceImage: "(binary file)"
+ *             faceSwapWithExisting:
+ *               summary: Face swap with existing resource
+ *               value:
+ *                 positivePrompt: "Astronaut in space suit"
+ *                 negativePrompt: "distorted face"
+ *                 referenceImageResourceId: "550e8400-e29b-41d4-a716-446655440000"
  *     responses:
  *       201:
  *         description: Image generated successfully
@@ -85,29 +100,22 @@ const comfyRouter = express.Router();
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - message
+ *                 - promptId
+ *                 - resource
  *               properties:
  *                 message:
  *                   type: string
  *                   example: "Image generated successfully"
  *                 promptId:
  *                   type: string
- *                   description: ID of the generated prompt
- *                   example: "prompt_12345"
+ *                   description: ComfyUI prompt ID for this generation
+ *                   example: "abc123-def456-ghi789"
  *                 resource:
- *                   type: object
- *                   description: Metadata about the stored image resource
- *                   properties:
- *                     id:
- *                       type: string
- *                       example: "resource_67890"
- *                     filename:
- *                       type: string
- *                       example: "futuristic_city.png"
- *                     url:
- *                       type: string
- *                       example: "https://cdn.example.com/images/futuristic_city.png"
+ *                   $ref: "#/components/schemas/Resource"
  *       400:
- *         description: Invalid request (missing or invalid positivePrompt, or invalid reference image)
+ *         description: Bad request - invalid input
  *         content:
  *           application/json:
  *             schema:
@@ -115,15 +123,30 @@ const comfyRouter = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "positivePrompt is required and must be a non-empty string."
+ *                   examples:
+ *                     - "positivePrompt is required and must be a non-empty string."
+ *                     - "No image file provided"
+ *                     - "Invalid file type: image/svg+xml"
  *       401:
- *         description: Unauthorized (JWT missing or invalid)
+ *         description: Unauthorized - missing or invalid JWT token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/Error"
  *       403:
- *         description: Forbidden (insufficient role permissions or reference image not owned by user)
+ *         description: Forbidden - insufficient permissions or unauthorized access to reference image
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     - "Role 'viewer' does not have permission to perform 'create'"
+ *                     - "Failed to retrieve reference image: Unauthorized to access this resource"
  *       404:
  *         description: Reference image resource not found
- *       500:
- *         description: Unexpected server error
  *         content:
  *           application/json:
  *             schema:
@@ -131,7 +154,23 @@ const comfyRouter = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "An unexpected error occurred"
+ *                   example: "Failed to retrieve reference image: Resource not found"
+ *       429:
+ *         description: Rate limit exceeded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Too many generation requests. Please try again later."
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/Error"
  */
 
 comfyRouter.post(
